@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  nickname  String?
+  avatar    String?
+  bio       String?
+  role      String   @default("admin") // admin | visitor
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  posts              Post[]
+  projects           Project[]
+  checkIns           CheckIn[]
+  inviteCodesCreated InviteCode[] @relation("CreatedInviteCodes")
+  inviteCodeUsed     InviteCode?  @relation("UsedInviteCode")
+
+  @@map("users")
+}
+
+model InviteCode {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique
+  creatorId Int?      @map("creator_id")
+  usedById  Int?      @map("used_by_id") @unique
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  creator  User? @relation("CreatedInviteCodes", fields: [creatorId], references: [id])
+  usedBy   User? @relation("UsedInviteCode", fields: [usedById], references: [id])
+
+  @@map("invite_codes")
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  summary     String?
+  content     String
+  coverImage  String?   @map("cover_image")
+  viewCount   Int       @default(0) @map("view_count")
+  likeCount   Int       @default(0) @map("like_count")
+  status      String    @default("draft") // draft | published
+  authorId    Int       @map("author_id")
+  categoryId  Int?      @map("category_id")
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+
+  // 关联
+  author     User      @relation(fields: [authorId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       PostTag[]
+  likes      PostLike[]
+  project    Project?  @relation(fields: [projectId], references: [id])
+  projectId  Int?      @map("project_id")
+
+  @@map("posts")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // 关联
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // 关联
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId Int @map("post_id")
+  tagId  Int @map("tag_id")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Project {
+  id              Int       @id @default(autoincrement())
+  name            String
+  description     String?
+  techStack       String?   @map("tech_stack") // JSON 数组存储
+  codeUrl         String?   @map("code_url")
+  demoUrl         String?   @map("demo_url")
+  status          String    @default("planning") // planning | in_progress | completed
+  completionRate  Int       @default(0) @map("completion_rate")
+  sortOrder       Int       @default(0) @map("sort_order")
+  isPublic        Boolean   @default(true) @map("is_public")
+  authorId        Int       @map("author_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  completedAt     DateTime? @map("completed_at")
+
+  // 关联
+  author User    @relation(fields: [authorId], references: [id])
+  stages Stage[]
+  posts  Post[]
+
+  @@map("projects")
+}
+
+model Stage {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  name        String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // 关联
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@map("stages")
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  stageId     Int       @map("stage_id")
+  title       String
+  description String?
+  isCompleted Boolean   @default(false) @map("is_completed")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  // 关联
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model PostLike {
+  postId    Int      @map("post_id")
+  visitorId String   @map("visitor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, visitorId])
+  @@map("post_likes")
+}
+
+model CheckIn {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("check_ins")
+}
