@@ -12,10 +12,11 @@ import {
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 import AppLayout from '../components/AppLayout'
+import PaginationBar from '../components/blog/PaginationBar'
 import { getPosts, deletePost, Post } from '../services/post'
 import { getCategories, createCategory } from '../services/category'
 import { getDashboardStats } from '../services/stats'
-import apiClient from '../services/auth'
+import apiClient from '../services/apiClient'
 
 const statusColorMap: Record<string, string> = {
   published: 'green',
@@ -34,8 +35,8 @@ function BlogManage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
   const [stats, setStats] = useState({ postsCount: 0, draftCount: 0, totalViews: 0 })
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([])
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null)
@@ -43,10 +44,10 @@ function BlogManage() {
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  const fetchPosts = useCallback(async (p: number) => {
+  const fetchPosts = useCallback(async (p: number, ps: number = pageSize) => {
     setLoading(true)
     try {
-      const params: Record<string, any> = { page: p, limit: 15, orderBy: 'createdAt', order: 'desc' }
+      const params: Record<string, any> = { page: p, limit: ps, orderBy: 'createdAt', order: 'desc' }
       if (statusFilter !== 'all') params.status = statusFilter
       if (search.trim()) params.search = search.trim()
       if (categoryFilter && categoryFilter > 0) params.categoryId = categoryFilter
@@ -62,14 +63,13 @@ function BlogManage() {
         }
         setPosts(filteredPosts)
         setTotal(filteredTotal)
-        setTotalPages(categoryFilter === -1 ? 1 : res.data.pagination.totalPages)
       }
     } catch (e) {
       console.error('获取文章列表失败:', e)
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, search, categoryFilter])
+  }, [statusFilter, search, categoryFilter, pageSize])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -129,9 +129,10 @@ function BlogManage() {
     }
   }
 
-  const handlePageChange = (p: number) => {
+  const handlePageChange = (p: number, ps: number = pageSize) => {
     setPage(p)
-    fetchPosts(p)
+    setPageSize(ps)
+    fetchPosts(p, ps)
   }
 
   const totalArticles = stats.postsCount + stats.draftCount
@@ -145,8 +146,8 @@ function BlogManage() {
         <Space>
           <FileTextOutlined style={{ color: 'var(--accent-start)', opacity: 0.7 }} />
           <a
-            onClick={() => navigate(`/blog/${record.id}`)}
-            style={{ color: 'var(--text-color)', fontWeight: 500 }}
+            onClick={() => navigate(`/blogs/${record.slug}`)}
+            style={{ color: 'var(--text-color)', fontWeight: 500, cursor: 'pointer' }}
           >
             {title}
           </a>
@@ -213,7 +214,7 @@ function BlogManage() {
               type="text"
               size="small"
               icon={<EyeOutlined />}
-              onClick={() => navigate(`/blog/${record.id}`)}
+              onClick={() => navigate(`/blogs/${record.slug}`)}
               style={{ color: 'var(--secondary-text)' }}
             />
           </Tooltip>
@@ -249,25 +250,32 @@ function BlogManage() {
   ]
 
   return (
-    <AppLayout selectedKey="blogs">
-      <div style={{ animation: 'fadeIn 0.35s ease-out both', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+    <AppLayout selectedKey="blogs-manage">
+      <div style={{
+        animation: 'fadeIn 0.35s ease-out both',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 'calc(100vh - 64px - 40px - 48px)',
+      }}>
         {/* 顶部标题栏 */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: '20px',
         }}>
           <h2 style={{ color: 'var(--text-color)', margin: 0, fontSize: '22px', fontWeight: 700 }}>
-            📝 文章管理
+            ✏️ 博客管理
           </h2>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            className="fjj-btn-primary"
-            onClick={() => navigate('/blog/create')}
-            style={{ height: '40px', borderRadius: '8px', fontWeight: 500 }}
-          >
-            新建文章
-          </Button>
+          <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="fjj-btn-primary"
+              onClick={() => navigate('/blog/create')}
+              style={{ height: '40px', borderRadius: '8px', fontWeight: 500 }}
+            >
+              新建文章
+            </Button>
+          </Space>
         </div>
         {/* 统计卡片 */}
         <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
@@ -286,7 +294,7 @@ function BlogManage() {
               <Statistic
                 title={<span style={{ color: 'var(--secondary-text)' }}>已发布</span>}
                 value={stats.postsCount}
-                valueStyle={{ color: '#764ba2' }}
+                valueStyle={{ color: 'var(--accent-end)' }}
                 suffix="篇"
               />
             </Card>
@@ -541,51 +549,19 @@ function BlogManage() {
             })}
           />
 
-          {/* 分页 */}
-          {totalPages > 1 && (
-            <div style={{
-              display: 'flex', justifyContent: 'center',
-              padding: '16px 20px',
-              borderTop: 'var(--divider-color)',
-            }}>
-              <Space size="small">
-                <Button
-                  size="small"
-                  disabled={page <= 1}
-                  onClick={() => handlePageChange(page - 1)}
-                  className="fjj-btn-default"
-                >
-                  上一页
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => Math.abs(p - page) <= 2 || p === 1 || p === totalPages)
-                  .map((p, idx, arr) => (
-                    <span key={p}>
-                      {idx > 0 && arr[idx - 1] !== p - 1 && (
-                        <span style={{ color: 'var(--muted-text)', margin: '0 4px' }}>...</span>
-                      )}
-                      <Button
-                        size="small"
-                        type={p === page ? 'primary' : 'default'}
-                        className={p === page ? 'fjj-btn-primary' : 'fjj-btn-default'}
-                        onClick={() => handlePageChange(p)}
-                        style={{ minWidth: '32px' }}
-                      >
-                        {p}
-                      </Button>
-                    </span>
-                  ))}
-                <Button
-                  size="small"
-                  disabled={page >= totalPages}
-                  onClick={() => handlePageChange(page + 1)}
-                  className="fjj-btn-default"
-                >
-                  下一页
-                </Button>
-              </Space>
-            </div>
-          )}
+          {/* 分页栏 — 共用 PaginationBar */}
+          <div style={{
+            padding: '12px 20px',
+            borderTop: 'var(--divider-color)',
+          }}>
+            <PaginationBar
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              pageSizeOptions={[10, 15, 20]}
+              onChange={handlePageChange}
+            />
+          </div>
             </Card>
           </Col>
         </Row>

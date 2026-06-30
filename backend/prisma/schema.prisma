@@ -68,6 +68,7 @@ model Post {
   category   Category? @relation(fields: [categoryId], references: [id])
   tags       PostTag[]
   likes      PostLike[]
+  views      PostView[]
   project    Project?  @relation(fields: [projectId], references: [id])
   projectId  Int?      @map("project_id")
 
@@ -126,6 +127,10 @@ model Project {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   completedAt     DateTime? @map("completed_at")
+  startDate       DateTime? @map("start_date")
+  expectedEndDate DateTime? @map("expected_end_date")
+  bufferDays      Int?      @default(0) @map("buffer_days")
+  plan            String?   @map("plan") // JSON 数组: [{ what, time?, weight? }]
 
   // 关联
   author User    @relation(fields: [authorId], references: [id])
@@ -175,6 +180,18 @@ model PostLike {
 
   @@id([postId, visitorId])
   @@map("post_likes")
+}
+
+model PostView {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  visitorId String   @map("visitor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, visitorId, createdAt])
+  @@map("post_views")
 }
 
 model CheckIn {

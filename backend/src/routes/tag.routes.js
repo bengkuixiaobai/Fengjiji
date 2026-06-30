@@ -52,15 +52,18 @@ router.get('/', async (req, res, next) => {
  * @desc    获取标签详情
  * @access  Public
  */
-router.get('/:id', async (req, res, next) => {
+router.get('/:idOrSlug', async (req, res, next) => {
   try {
-    const { id } = req.params
+    const { idOrSlug } = req.params
+    // P1-6:前端按 slug 查,后端同时支持按 id(数字)和 slug(字符串)
+    const isNumeric = /^\d+$/.test(idOrSlug)
+    const where = isNumeric
+      ? { id: parseInt(idOrSlug) }
+      : { slug: idOrSlug }
     const tag = await prisma.tag.findUnique({
-      where: { id: parseInt(id) },
+      where,
       include: {
-        _count: {
-          select: { posts: true },
-        },
+        _count: { select: { posts: true } },
       },
     })
 

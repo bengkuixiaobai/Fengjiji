@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Layout, Space, Button, Card, Row, Col, Statistic, List, Tag, Input, Segmented, Badge, Modal, Form, Progress, Spin, Select, Avatar } from 'antd'
+import { Layout, Space, Button, Card, Row, Col, Statistic, List, Tag, Input, Segmented, Modal, Form, Progress, Spin, Select, Avatar } from 'antd'
 import { FileTextOutlined, SearchOutlined, PlusOutlined, CalendarOutlined, EyeOutlined, LikeOutlined, FireOutlined, ClockCircleOutlined, CheckCircleOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
@@ -44,66 +44,62 @@ function Home() {
   const [stats, setStats] = useState({ postsCount: 0, projectsCount: 0, checkinsCount: 0, totalViews: 0 })
   const [loading, setLoading] = useState(true)
 
-  // 获取数据
+  // 获取数据 — P2-11:首屏关键接口(文章+项目)先 await 渲染,其余后台拉
   const fetchData = async () => {
     try {
-      setLoading(true)
       const token = localStorage.getItem('auth-token')
       if (!token) {
         navigate('/login')
         return
       }
 
-      // 并行获取所有数据
-      const [postsRes, projectsRes, categoriesRes, checkinsRes, statsRes] = await Promise.all([
+      // 首屏关键:文章 + 项目
+      const [postsRes, projectsRes] = await Promise.all([
         getPosts({ limit: 10, status: 'published' }),
         getProjects({ limit: 20, isPublic: true }),
-        getCategories(),
-        getCheckIns({ year: dayjs().year(), month: dayjs().month() + 1 }),
-        getDashboardStats(),
       ])
 
-      if (postsRes.success && postsRes.data) {
-        setPosts(postsRes.data.posts)
-      }
+      if (postsRes.success && postsRes.data) setPosts(postsRes.data.posts)
+      if (projectsRes.success && projectsRes.data) setProjects(projectsRes.data.projects)
 
-      if (projectsRes.success && projectsRes.data) {
-        setProjects(projectsRes.data.projects)
-      }
-
-      if (categoriesRes.success && categoriesRes.data) {
-        setCategories(categoriesRes.data)
-      }
-
-      if (checkinsRes.success && checkinsRes.data) {
-        const record: Record<string, boolean> = {}
-        checkinsRes.data.dates.forEach((date: string) => {
-          record[date] = true
-        })
-        setCheckInRecord(record)
-        setHasCheckedInToday(!!record[dayjs().format('YYYY-MM-DD')])
-      }
-
-      if (statsRes.success && statsRes.data) {
-        setStats(statsRes.data)
-      }
-
-      // 自动签到 — 确保今日在日历中标记为绿色
-      const today = dayjs().format('YYYY-MM-DD')
-      const alreadyChecked = checkinsRes.data?.dates.includes(today)
-      if (!alreadyChecked) {
+      // 首屏出来后再后台拉其余
+      setTimeout(async () => {
         try {
-          const checkRes = await apiCheckIn(today)
-          if (checkRes.success) {
-            setCheckInRecord(prev => ({ ...prev, [today]: true }))
-            setHasCheckedInToday(true)
+          const [categoriesRes, checkinsRes, statsRes] = await Promise.all([
+            getCategories(),
+            getCheckIns({ year: dayjs().year(), month: dayjs().month() + 1 }),
+            getDashboardStats(),
+          ])
+          if (categoriesRes.success && categoriesRes.data) setCategories(categoriesRes.data)
+          if (statsRes.success && statsRes.data) setStats(statsRes.data)
+          if (checkinsRes.success && checkinsRes.data) {
+            const record: Record<string, boolean> = {}
+            checkinsRes.data.dates.forEach((date: string) => {
+              record[date] = true
+            })
+            setCheckInRecord(record)
+            setHasCheckedInToday(!!record[dayjs().format('YYYY-MM-DD')])
+
+            // 自动签到
+            const today = dayjs().format('YYYY-MM-DD')
+            const alreadyChecked = checkinsRes.data.dates.includes(today)
+            if (!alreadyChecked) {
+              try {
+                const checkRes = await apiCheckIn(today)
+                if (checkRes.success) {
+                  setCheckInRecord(prev => ({ ...prev, [today]: true }))
+                  setHasCheckedInToday(true)
+                }
+              } catch {
+                setCheckInRecord(prev => ({ ...prev, [today]: true }))
+                setHasCheckedInToday(true)
+              }
+            }
           }
-        } catch {
-          // 即使 API 出错，也标记为已签到让日历变绿
-          setCheckInRecord(prev => ({ ...prev, [today]: true }))
-          setHasCheckedInToday(true)
+        } catch (e) {
+          // 后台接口失败不阻塞首屏
         }
-      }
+      }, 0)
     } catch (error) {
       console.error('获取数据失败:', error)
     } finally {
@@ -231,13 +227,7 @@ function Home() {
   }
 
   return (
-    <AppLayout selectedKey="home" showSidebar
-      checkinExtra={
-        <Badge dot={!hasCheckedInToday}>
-          <Button type="text" icon={<CalendarOutlined />} onClick={() => setCheckInVisible(true)} style={{ color: 'var(--secondary-text)' }} />
-        </Badge>
-      }
-    >
+    <AppLayout selectedKey="home" showSidebar>
       {/* 主内容 */}
       <div style={{ animation: 'fadeIn 0.35s ease-out both' }}>
         {/* 欢迎语 + 迷你日历同一行 */}
@@ -289,37 +279,82 @@ function Home() {
 
           {/* 迷你日历 */}
           <div style={{
-            width: '220px',
-            padding: '12px',
+            width: '280px',
+            padding: '16px',
             background: cardBg,
             borderRadius: '12px',
             border: cardBorder,
           }}>
             {/* 日历头部 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => setMiniCalendarDate(miniCalendarDate.subtract(1, 'month'))} style={{ color: mutedTextColor, padding: 0, width: '20px', height: '20px' }} />
-              <span style={{ color: textColor, fontSize: '12px', fontWeight: 500 }}>{miniCalendarDate.format('YYYY年M月')}</span>
-              <Button type="text" size="small" icon={<RightOutlined />} onClick={() => setMiniCalendarDate(miniCalendarDate.add(1, 'month'))} style={{ color: mutedTextColor, padding: 0, width: '20px', height: '20px' }} />
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: '12px',
+            }}>
+              <Button
+                type="text"
+                icon={<LeftOutlined />}
+                onClick={() => setMiniCalendarDate(miniCalendarDate.subtract(1, 'month'))}
+                style={{
+                  color: mutedTextColor,
+                  width: 28, height: 28, padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              />
+              <span style={{ color: textColor, fontSize: '13px', fontWeight: 600 }}>
+                {miniCalendarDate.format('YYYY 年 M 月')}
+              </span>
+              <Button
+                type="text"
+                icon={<RightOutlined />}
+                onClick={() => setMiniCalendarDate(miniCalendarDate.add(1, 'month'))}
+                style={{
+                  color: mutedTextColor,
+                  width: 28, height: 28, padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              />
             </div>
             {/* 星期标题 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '4px' }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '4px', marginBottom: '8px',
+            }}>
               {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-                <div key={d} style={{ textAlign: 'center', color: mutedTextColor, fontSize: '10px' }}>{d}</div>
+                <div key={d} style={{
+                  textAlign: 'center', color: mutedTextColor,
+                  fontSize: '11px', fontWeight: 500,
+                }}>{d}</div>
               ))}
             </div>
-            {/* 日期 - 固定6行高度 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '2px', height: '180px' }}>
+            {/* 日期网格 — 更大、更舒展 */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridTemplateRows: 'repeat(6, 1fr)',
+              gap: '4px',
+              height: '210px',
+            }}>
               {calendarDays.map((item, idx) => (
                 <div key={idx} style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: '50%',
-                  background: item.isChecked ? '#36d399' : item.isToday ? 'rgba(102, 126, 234, 0.3)' : 'transparent',
-                  color: item.isFuture ? mutedTextColor : item.isChecked || item.isToday ? '#fff' : textColor,
-                  fontSize: '11px',
+                  background: item.isChecked
+                    ? '#36d399'
+                    : item.isToday
+                      ? 'rgba(102, 126, 234, 0.3)'
+                      : 'transparent',
+                  color: item.isFuture
+                    ? mutedTextColor
+                    : item.isChecked || item.isToday
+                      ? '#fff'
+                      : textColor,
+                  fontSize: '12px',
+                  fontWeight: item.isToday || item.isChecked ? 600 : 400,
                   cursor: item.isFuture ? 'not-allowed' : 'pointer',
                   opacity: item.isFuture ? 0.4 : 1,
+                  transition: 'all 0.15s ease',
                 }} onClick={() => {
                   if (!item.isFuture && !item.isChecked && item.date) {
                     handleCheckIn()
@@ -355,7 +390,7 @@ function Home() {
           />
           <Input
             placeholder="搜索文章或项目..."
-            prefix={<SearchOutlined style={{ color: '#667eea' }} />}
+            prefix={<SearchOutlined style={{ color: 'var(--accent-start)' }} />}
             value={searchValue}
             onChange={e => setSearchValue(e.target.value)}
             style={{ flex: 1, borderRadius: '20px', background: inputBg, border: 'none' }}
@@ -367,12 +402,12 @@ function Home() {
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           <Col xs={12} sm={6}>
             <Card className="hover-card" style={{ background: cardBg, border: cardBorder, borderRadius: '12px' }}>
-              <Statistic title={<span style={{ color: secondaryTextColor }}>文章总数</span>} value={stats.postsCount} valueStyle={{ color: '#667eea' }} suffix="篇" />
+              <Statistic title={<span style={{ color: secondaryTextColor }}>文章总数</span>} value={stats.postsCount} valueStyle={{ color: 'var(--accent-start)' }} suffix="篇" />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
             <Card className="hover-card" style={{ background: cardBg, border: cardBorder, borderRadius: '12px' }}>
-              <Statistic title={<span style={{ color: secondaryTextColor }}>项目总数</span>} value={stats.projectsCount} valueStyle={{ color: '#764ba2' }} suffix="个" />
+              <Statistic title={<span style={{ color: secondaryTextColor }}>项目总数</span>} value={stats.projectsCount} valueStyle={{ color: 'var(--accent-end)' }} suffix="个" />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
@@ -411,8 +446,8 @@ function Home() {
                 ))}
               </div>
               <List dataSource={filteredPosts.slice(0, 5)} renderItem={item => (
-                <List.Item className="hover-list-item" style={{ padding: '14px 20px', borderBottom: cardBorder, cursor: 'pointer' }} onClick={() => navigate(`/blog/${item.id}`)}>
-                  <List.Item.Meta avatar={<Avatar icon={<FileTextOutlined />} style={{ backgroundColor: '#667eea' }} />}
+                <List.Item className="hover-list-item" style={{ padding: '14px 20px', borderBottom: cardBorder, cursor: 'pointer' }} onClick={() => navigate(`/blogs/${item.slug}`)}>
+                  <List.Item.Meta avatar={<Avatar icon={<FileTextOutlined />} style={{ backgroundColor: 'var(--accent-start)' }} />}
                     title={<span style={{ color: textColor, fontWeight: 500 }}>{item.title}</span>}
                     description={<Space size="middle">
                       <Tag style={{ color: tagColor, background: tagBg, border: 'none' }}>{item.category?.name || '未分类'}</Tag>
@@ -446,7 +481,7 @@ function Home() {
                     <Tag color={project.status === 'completed' ? 'success' : project.status === 'in_progress' ? 'processing' : 'default'} style={{ color: project.status === 'completed' || project.status === 'in_progress' ? undefined : tagColor, background: project.status === 'completed' || project.status === 'in_progress' ? undefined : tagBg, border: 'none' }}>{statusMap[project.status]}</Tag>
                   </div>
                   <div style={{ color: mutedTextColor, fontSize: '13px', marginBottom: '10px' }}>{project.description}</div>
-                  <Progress percent={project.completionRate} size="small" strokeColor="#667eea" />
+                  <Progress percent={project.completionRate} size="small" strokeColor="var(--accent-start)" />
                 </div>
               ))}
             </Card>

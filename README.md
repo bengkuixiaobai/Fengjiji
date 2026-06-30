@@ -1,149 +1,201 @@
 # 风迹集
 
-个人博客与作品集管理平台。记录技术思考，分享项目经验，追踪项目进度。
+> 个人博客与作品集管理平台：记录技术思考 · 分享项目经验 · 追踪项目进度
 
-## 技术栈
+🌌 **风过留痕，迹存于心**
+
+---
+
+## ✨ 特性
+
+- 📝 **博客系统** — Markdown 编写、分类/标签、点赞/阅读量统计、上下篇导航
+- 🚀 **项目管理** — 看板视图、计划任务、进度追踪、GitHub 仓库关联
+- 📅 **每日签到** — 日历视图、个人坚持天数统计
+- 🔐 **JWT 认证** — access + refresh token 机制
+- 🌓 **深色 / 浅色主题** — CSS 变量驱动，无闪烁切换
+
+---
+
+## 🛠 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | React 18 + TypeScript + Vite 5 + Ant Design 5 + Zustand |
-| 后端 | Node.js + Express 4 + Prisma ORM |
-| 数据库 | PostgreSQL |
-| 认证 | JWT (accessToken + refreshToken) |
+| 前端 | React 18 · TypeScript · Vite 5 · Ant Design 5 · Zustand |
+| 后端 | Node.js · Express 4 · Prisma 5 |
+| 数据库 | PostgreSQL 14+ |
+| 认证 | JWT (access + refresh token) |
+| 部署 | PM2 · Nginx · Let's Encrypt |
 
-## 环境要求
+---
 
-- Node.js >= 18
-- PostgreSQL >= 14
+## 📋 环境要求
 
-## 快速启动
+- **Node.js** >= 18
+- **PostgreSQL** >= 14
+- **Linux** (Ubuntu 22.04 / Debian 12 推荐)
 
-### 1. 安装依赖
+---
 
-```bash
-# 后端依赖
-cd backend
-npm install
-
-# 前端依赖
-cd ../frontend
-npm install
-```
-
-### 2. 配置环境变量
-
-后端配置文件 `backend/.env`：
-
-```env
-# 数据库（按实际配置修改）
-DATABASE_URL="postgresql://postgres:密码@localhost:5432/fengjiji?schema=public"
-
-# JWT 密钥（修改为随机字符串）
-JWT_SECRET="your-super-secret-key-change-this-in-production"
-JWT_EXPIRES_IN="15m"
-JWT_REFRESH_EXPIRES_IN="7d"
-
-# 服务器
-PORT=3000
-NODE_ENV="development"
-```
-
-### 3. 创建数据库
+## 🚀 快速开始
 
 ```bash
-createdb -U postgres fengjiji
-```
+# 1. 克隆仓库
+git clone <仓库地址> fengjiji
+cd fengjiji
 
-### 4. 初始化数据库表结构
+# 2. 安装依赖
+npm run install:all
 
-```bash
+# 3. 初始化数据库
+#    - 创建数据库 fengjiji
+#    - 修改 backend/.env 中的 DATABASE_URL
+#    - 执行迁移：
 cd backend
 npx prisma migrate dev
-```
+node prisma/seed.js    # 创建初始管理员 + 邀请码
+cd ..
 
-### 5. 启动服务
-
-**终端 1 — 启动后端（端口 3000）：**
-
-```bash
-cd backend
+# 4. 启动开发服务
 npm run dev
 ```
-
-**终端 2 — 启动前端（端口 5173）：**
-
-```bash
-cd frontend
-npm run dev
-```
-
-### 6. 访问
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:5173 | 前端页面 |
+| http://localhost:5173 | 前端开发服务器 |
 | http://localhost:3000/api/health | 后端健康检查 |
 
-> 前端开发服务器已配置代理，`/api` 请求自动转发到后端 3000 端口。
+**初始管理员账号**（seed 后控制台输出）：
 
-## 常用命令
+- username: `admin`
+- password: `Admin@123456` （首次登录后请立即修改）
+
+**默认邀请码**：`FENGJI2026`
+
+---
+
+## 📦 常用命令
 
 ```bash
-# 后端
-npm run dev              # 开发模式（热重载）
-npm start                # 生产模式
-npx prisma studio        # 数据库管理 UI
-npx prisma migrate dev   # 运行数据库迁移
-npx prisma generate      # 生成 Prisma Client
+# 安装
+npm run install:all       # 一次性安装前后端依赖
+npm run install:backend
+npm run install:frontend
 
-# 前端
-npm run dev              # 开发模式
-npm run build            # 构建生产版本
-npm run preview          # 预览构建产物
+# 开发
+npm run dev               # 并行启动前后端（dev 热重载）
+npm run dev:backend       # 仅后端
+npm run dev:frontend      # 仅前端
+
+# 构建
+npm run build             # 构建前端生产版本
+
+# 启动生产
+npm start                 # 启动后端
+
+# 数据库
+npm run seed              # 运行种子脚本
+
+# 部署（构建 + 迁移 + 启动）
+npm run deploy
 ```
 
-## 项目结构
+---
+
+## 📂 项目结构
 
 ```
-my_website/
-├── backend/
-│   ├── prisma/              # 数据库 schema 和迁移
+fengjiji/
+├── backend/                 # 后端 Express API
+│   ├── prisma/              # 数据库 schema / migrations / seed
 │   ├── src/
-│   │   ├── config/          # 配置
+│   │   ├── config/          # 环境配置
 │   │   ├── controllers/     # 控制器
-│   │   ├── middleware/       # 中间件（认证、错误处理）
+│   │   ├── services/        # 业务逻辑层
+│   │   ├── middleware/       # 中间件
 │   │   ├── routes/          # 路由
-│   │   ├── services/        # 业务逻辑
-│   │   ├── utils/           # 工具类
-│   │   ├── app.js           # Express 应用配置
+│   │   ├── utils/           # 工具函数
+│   │   ├── app.js           # Express 应用
 │   │   └── server.js        # 服务入口
-│   └── index.js
-├── frontend/
+│   └── uploads/             # 上传文件
+│
+├── frontend/                # 前端 Vite SPA
 │   ├── src/
-│   │   ├── pages/           # 页面组件
-│   │   ├── services/        # API 调用
-│   │   ├── stores/          # Zustand 状态管理
-│   │   ├── App.tsx          # 根组件（路由）
-│   │   └── main.tsx         # 入口
+│   │   ├── pages/           # 页面（路由级 lazy）
+│   │   ├── components/      # 共享组件
+│   │   ├── services/        # API 调用层
+│   │   ├── stores/          # Zustand 状态
+│   │   └── hooks/           # 自定义 Hooks
 │   └── vite.config.ts
-├── PRD-风迹集.md             # 产品需求文档
+│
+├── docs/                    # 项目文档
+│   ├── PRD.md               # 产品需求文档
+│   ├── 01-项目概览.md        # 技术栈一览
+│   ├── 02-环境搭建与部署指南.md
+│   ├── 03-运维与备份手册.md
+│   ├── 04-环境变量参考.md
+│   ├── 05-安全加固指南.md
+│   ├── 06-常见问题排查.md
+│   ├── design/              # 设计阶段文档
+│   └── archive/             # 历史归档（审查报告等）
+│
+├── ecosystem.config.js      # PM2 进程管理配置
+├── package.json             # 根级 npm scripts
 └── README.md
 ```
 
-## API 概览
+---
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/auth/register | 注册 |
-| POST | /api/auth/login | 登录 |
-| POST | /api/auth/refresh | 刷新 Token |
-| GET | /api/users/me | 获取当前用户 |
-| PUT | /api/users/me | 更新个人信息 |
-| GET/POST | /api/posts | 文章列表/创建 |
-| PUT/DELETE | /api/posts/:id | 更新/删除文章 |
-| GET/POST | /api/projects | 项目列表/创建 |
-| PUT/DELETE | /api/projects/:id | 更新/删除项目 |
-| GET | /api/categories | 分类列表 |
-| GET | /api/tags | 标签列表 |
-| GET/POST | /api/checkins | 签到记录/签到 |
-| GET | /api/stats/dashboard | 仪表盘统计 |
+## 📖 文档索引
+
+### 🚀 落地文档（按阅读顺序）
+
+1. [项目概览](docs/01-项目概览.md) — 技术栈与项目结构速览
+2. [环境搭建与部署指南](docs/02-环境搭建与部署指南.md) — 从零到上线的完整步骤
+3. [运维与备份手册](docs/03-运维与备份手册.md) — 日常运维、备份策略、故障恢复
+4. [环境变量参考](docs/04-环境变量参考.md) — 所有 env 变量与生成方法
+5. [安全加固指南](docs/05-安全加固指南.md) — 服务器/应用/数据库三层加固
+6. [常见问题排查](docs/06-常见问题排查.md) — 启动/数据库/前端/性能 FAQ
+
+### 📐 设计阶段文档
+
+- [项目计划与里程碑](docs/design/01-项目计划与里程碑.md)
+- [技术方案设计文档](docs/design/02-技术方案设计文档.md)
+- [数据库设计文档](docs/design/03-数据库设计文档.md)
+- [API 接口规范](docs/design/04-API接口规范.md)
+- [前端设计文档](docs/design/05-前端设计文档.md)
+
+### 📄 产品文档
+
+- [PRD.md](docs/PRD.md) — 完整产品需求文档
+
+### 🗄 历史归档
+
+- [archive/](docs/archive/) — 已完成的审查报告、阶段性文档
+
+---
+
+## 🔌 API 概览
+
+主要接口（详见 [API 接口规范](docs/design/04-API接口规范.md)）：
+
+| 模块 | 接口 |
+|------|------|
+| 认证 | `POST /auth/register` `POST /auth/login` `POST /auth/refresh` `POST /auth/logout` |
+| 用户 | `GET /users/me` `PUT /users/me` `PUT /users/me/password` |
+| 文章 | `GET/POST /posts` `PUT/DELETE /posts/:id` `POST /posts/:id/view` `POST /posts/:id/like/toggle` |
+| 项目 | `GET/POST /projects` `PUT/DELETE /projects/:id` |
+| 分类 | `GET/POST /categories` `DELETE /categories/:id` |
+| 签到 | `GET/POST /checkins` `GET /checkins/stats` |
+| 仪表盘 | `GET /stats/dashboard` |
+| 上传 | `POST /upload` |
+
+---
+
+## 📝 版本与许可证
+
+- 当前版本：v1.0
+- 许可证：MIT
+
+---
+
+🌌 2026 风迹集

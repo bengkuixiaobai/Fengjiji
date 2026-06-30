@@ -83,4 +83,32 @@ router.put('/:id', authenticate, validate(updatePostSchema), postController.upda
  */
 router.delete('/:id', authenticate, postController.deletePost)
 
+/**
+ * @route   POST /api/posts/:id/view
+ * @desc    记录阅读量(同一访客 30 分钟内只计一次)
+ * @access  Public
+ */
+router.post('/:id/view', postController.recordView)
+
+/**
+ * @route   POST /api/posts/:id/like/toggle
+ * @desc    切换点赞(同一访客只点赞一次)
+ * @access  Public
+ */
+router.post('/:id/like/toggle', postController.toggleLike)
+
+/**
+ * @route   GET /api/posts/:id/like/status
+ * @desc    获取当前访客的点赞状态
+ * @access  Public
+ */
+router.get('/:id/like/status', postController.getLikeStatus)
+
+/**
+ * @route   GET /api/posts/:id/adjacent
+ * @desc    获取上下篇(同分类按时间)
+ * @access  Public
+ */
+router.get('/:id/adjacent', postController.getAdjacentPosts)
+
 module.exports = router

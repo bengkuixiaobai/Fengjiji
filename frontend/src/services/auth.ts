@@ -1,39 +1,6 @@
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// 请求拦截器：添加 Token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth-token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
-// 响应拦截器：处理错误
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth-token')
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  }
-)
+// apiClient 实例已抽到 ./apiClient.ts,统一维护
+import apiClient from './apiClient'
+export { default as apiClient } from './apiClient'
 
 export interface LoginRequest {
   usernameOrEmail: string
@@ -102,6 +69,18 @@ export async function getCurrentUser(): Promise<UserResponse> {
 // 登出
 export async function logout(): Promise<void> {
   await apiClient.post('/auth/logout')
+}
+
+/** 更新个人资料 — P0-4:Profile 接入 */
+export async function updateMe(data: { nickname?: string; email?: string; bio?: string; avatar?: string }) {
+  const response = await apiClient.put('/users/me', data)
+  return response.data
+}
+
+/** 修改密码 — P0-4:Profile 接入 */
+export async function changePassword(data: { oldPassword: string; newPassword: string }) {
+  const response = await apiClient.put('/users/me/password', data)
+  return response.data
 }
 
 export default apiClient

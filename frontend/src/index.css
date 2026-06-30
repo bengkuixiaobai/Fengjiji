@@ -77,10 +77,23 @@ body {
 }
 
 /* ---------- 主题过渡动画 ---------- */
-/* 所有使用 CSS 变量的元素在主题切换时平滑过渡 */
+/* P1-5:在原来基础上加 transform + opacity,让切主题时元素有"移动感"而非仅颜色淡入 */
 [data-theme] {
-  transition: background-color 0.3s ease, border-color 0.3s ease,
-    color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+/* P1-4:统一的页面入场动画 — 用 CSS 变量控时,所有页面挂载时挂这个类即可 */
+:root {
+  --page-fade-duration: 0.3s;
+}
+.page-fade-in {
+  animation: fadeIn var(--page-fade-duration) ease-out both;
 }
 
 /* ---------- 自定义滚动条 ---------- */
@@ -157,7 +170,7 @@ body {
 }
 
 /* ========================================
-   Segmented 组件覆盖
+   Segmented 组件覆盖 — 用 ConfigProvider 的 darkAlgorithm 时仍需保证选中态有渐变背景
    ======================================== */
 .ant-segmented {
   padding: 2px;
@@ -170,17 +183,19 @@ body {
 .ant-segmented-item-selected {
   background: var(--accent-gradient) !important;
   color: #fff !important;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
-}
-.light-menu .ant-segmented-item-selected {
-  background: #667eea !important;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4) !important;
 }
 .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
   color: var(--accent-start) !important;
 }
 .ant-segmented-item-label {
   transition: color 0.2s ease !important;
+}
+/* 浅色主题下选中态用单色 */
+.light-menu .ant-segmented-item-selected {
+  background: #667eea !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25) !important;
 }
 
 /* ========================================
@@ -205,16 +220,29 @@ body {
    Menu 主题覆盖
    ======================================== */
 
-/* --- 水平菜单 (顶部导航) --- */
+/* --- 水平菜单 (顶部导航) — 强力覆盖 Ant Design v5 的 CSS-in-JS 样式 --- */
+.dark-menu .ant-menu-horizontal,
+.dark-menu .ant-menu.ant-menu-horizontal,
+.dark-menu .ant-menu-light.ant-menu-horizontal,
 .dark-menu .ant-menu-horizontal > .ant-menu-item,
 .dark-menu .ant-menu-horizontal > .ant-menu-item > span,
-.dark-menu .ant-menu-horizontal > .ant-menu-item .anticon {
+.dark-menu .ant-menu-horizontal > .ant-menu-item > .ant-menu-title-content,
+.dark-menu .ant-menu-horizontal > .ant-menu-item > .ant-menu-title-content > .ant-menu-title-content-text,
+.dark-menu .ant-menu-horizontal > .ant-menu-item .anticon,
+.dark-menu .ant-menu-horizontal .ant-menu-title-content,
+.dark-menu .ant-menu-horizontal .ant-menu-title-content-text {
   color: rgba(255, 255, 255, 0.85) !important;
 }
-.dark-menu .ant-menu-horizontal > .ant-menu-item:hover {
+.dark-menu .ant-menu-horizontal > .ant-menu-item:hover,
+.dark-menu .ant-menu-horizontal > .ant-menu-item:hover > span,
+.dark-menu .ant-menu-horizontal > .ant-menu-item:hover > .ant-menu-title-content,
+.dark-menu .ant-menu-horizontal > .ant-menu-item:hover > .ant-menu-title-content > .ant-menu-title-content-text {
   color: #fff !important;
 }
-.dark-menu .ant-menu-horizontal > .ant-menu-item-selected {
+.dark-menu .ant-menu-horizontal > .ant-menu-item-selected,
+.dark-menu .ant-menu-horizontal > .ant-menu-item-selected > span,
+.dark-menu .ant-menu-horizontal > .ant-menu-item-selected > .ant-menu-title-content,
+.dark-menu .ant-menu-horizontal > .ant-menu-item-selected > .ant-menu-title-content > .ant-menu-title-content-text {
   color: #fff !important;
   font-weight: 600 !important;
 }
@@ -241,6 +269,13 @@ body {
 .dark-menu .ant-menu-inline .ant-menu-item:hover:not(.ant-menu-item-selected) {
   background: rgba(255, 255, 255, 0.1) !important;
   border-radius: 8px !important;
+}
+
+/* --- 顶部导航 header 容器(深色主题) --- */
+.dark-menu > .ant-layout-header,
+.dark-menu > div:first-child {
+  /* header 是 fixed 定位的 div,确保深色背景下文字透传 */
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 
 .light-menu .ant-menu-inline .ant-menu-item-selected {
@@ -303,6 +338,80 @@ body {
 }
 .scale-in {
   animation: scaleIn 0.25s ease-out both;
+}
+
+/* 脉冲呼吸 — 用于"实时预览"等状态指示 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* 编辑器工具栏按钮 hover */
+.toolbar-btn:hover {
+  background: var(--segmented-bg) !important;
+  color: var(--accent-start) !important;
+  transform: translateY(-1px);
+}
+.toolbar-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* 分类下拉芯片 hover */
+.category-chip {
+  cursor: pointer;
+}
+.category-chip:hover {
+  background: rgba(102, 126, 234, 0.12) !important;
+  border-color: rgba(102, 126, 234, 0.25) !important;
+}
+.category-chip:focus-within {
+  background: rgba(102, 126, 234, 0.15) !important;
+  border-color: rgba(102, 126, 234, 0.4) !important;
+}
+
+/* 副信息行里的分类入口 hover */
+.category-trigger:hover {
+  background: rgba(102, 126, 234, 0.1) !important;
+}
+
+/* ========================================
+   分类 Popover — 去掉 Ant 默认浮层包装
+   ======================================== */
+.ant-popover:has(.category-popover-card) .ant-popover-inner,
+.ant-popover.category-popover .ant-popover-inner {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+.ant-popover.category-popover .ant-popover-inner-content {
+  padding: 0 !important;
+}
+.ant-popover.category-popover .ant-popover-arrow {
+  display: none !important;
+}
+
+/* 分类卡片下滑动画 */
+@keyframes popoverSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 计划任务项添加动画 */
+@keyframes planItemAdd {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* 毛玻璃效果 */
@@ -507,4 +616,189 @@ body {
 .smooth-transition * {
   transition: background-color 0.25s ease, border-color 0.25s ease,
     color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ========================================
+   暗色主题全面修复 — 顶部菜单下拉 / Card / Modal / Popover / Tag / Input
+   ======================================== */
+
+/* --- 顶部菜单子项下拉 --- */
+.dark-menu .ant-menu-submenu-popup > .ant-menu,
+.dark-menu .nav-submenu.ant-menu-submenu-popup > .ant-menu {
+  background: #1a1a3e !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  padding: 6px !important;
+}
+.dark-menu .ant-menu-submenu-popup > .ant-menu .ant-menu-item,
+.dark-menu .nav-submenu .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+}
+.dark-menu .ant-menu-submenu-popup > .ant-menu .ant-menu-item:hover,
+.dark-menu .nav-submenu .ant-menu-item:hover {
+  background: rgba(102, 126, 234, 0.18) !important;
+  color: #fff !important;
+}
+
+/* --- Card 内部区域(避免 Card body 白底) --- */
+.dark-menu .ant-card .ant-card-body {
+  background: transparent !important;
+}
+.dark-menu .ant-card-head {
+  background: transparent !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+.dark-menu .ant-card-head-title {
+  color: var(--text-color) !important;
+}
+.dark-menu .ant-card-extra {
+  color: var(--secondary-text) !important;
+}
+.dark-menu .ant-card-meta-title {
+  color: var(--text-color) !important;
+}
+.dark-menu .ant-card-meta-description {
+  color: var(--secondary-text) !important;
+}
+
+/* --- Modal --- */
+.dark-menu .ant-modal-content,
+.dark-menu .ant-modal-header {
+  background: #1a1a3e !important;
+}
+.dark-menu .ant-modal-title,
+.dark-menu .ant-modal-close {
+  color: var(--text-color) !important;
+}
+.dark-menu .ant-modal-confirm-title,
+.dark-menu .ant-modal-confirm-content {
+  color: var(--text-color) !important;
+}
+
+/* --- Popover / Tooltip --- */
+.dark-menu .ant-popover-inner,
+.dark-menu .ant-popover-inner-content {
+  background: #1a1a3e !important;
+}
+.dark-menu .ant-popover-title {
+  color: var(--text-color) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+.dark-menu .ant-popover-inner-content {
+  color: var(--secondary-text) !important;
+}
+.dark-menu .ant-popover-arrow::before,
+.dark-menu .ant-popover-arrow::after {
+  background: #1a1a3e !important;
+}
+.dark-menu .ant-tooltip-inner {
+  background: rgba(20, 20, 50, 0.95) !important;
+  color: #fff !important;
+}
+.dark-menu .ant-tooltip-arrow::before {
+  background: rgba(20, 20, 50, 0.95) !important;
+}
+
+/* --- Tag --- */
+.dark-menu .ant-tag {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-color) !important;
+}
+
+/* --- Input / InputNumber --- */
+.dark-menu .ant-input,
+.dark-menu .ant-input-number,
+.dark-menu .ant-input-number-input,
+.dark-menu .ant-input-affix-wrapper {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-color) !important;
+}
+.dark-menu .ant-input-number-handler-wrap {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.dark-menu .ant-input-number-handler {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.dark-menu .ant-input-number-handler:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.dark-menu .ant-input-number-handler-up-inner,
+.dark-menu .ant-input-number-handler-down-inner {
+  color: var(--muted-text) !important;
+}
+.dark-menu .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* --- Switch --- */
+.dark-menu .ant-switch {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* --- Spin --- */
+.dark-menu .ant-spin-dot-item {
+  background: var(--accent-start) !important;
+}
+
+/* --- Empty --- */
+.dark-menu .ant-empty-description {
+  color: var(--muted-text) !important;
+}
+
+/* --- Pagination --- */
+.dark-menu .ant-pagination-item a {
+  color: var(--secondary-text) !important;
+}
+.dark-menu .ant-pagination-item:hover {
+  border-color: var(--accent-start) !important;
+}
+.dark-menu .ant-pagination-item-active {
+  background: transparent !important;
+  border-color: var(--accent-start) !important;
+}
+.dark-menu .ant-pagination-item-active a {
+  color: var(--accent-start) !important;
+}
+
+/* --- Progress --- */
+.dark-menu .ant-progress-text {
+  color: var(--text-color) !important;
+}
+
+/* --- Anchor / BackTop --- */
+.dark-menu .ant-anchor-link-title {
+  color: var(--secondary-text) !important;
+}
+
+/* --- Layout 内部某些白底 --- */
+.dark-menu .ant-layout {
+  background: transparent !important;
+}
+.dark-menu .ant-layout-content {
+  background: transparent !important;
+}
+.dark-menu .ant-layout-header {
+  background: transparent !important;
+}
+
+/* --- 浅色主题对应补丁(避免出现暗色残留) --- */
+.light-menu .ant-menu-submenu-popup > .ant-menu {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+.light-menu .ant-card .ant-card-body {
+  background: transparent !important;
+}
+.light-menu .ant-modal-content,
+.light-menu .ant-modal-header {
+  background: #ffffff !important;
+}
+.light-menu .ant-popover-inner {
+  background: #ffffff !important;
 }
