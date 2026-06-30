@@ -108,10 +108,74 @@ async function deletePost(req, res, next) {
   }
 }
 
+/** 记录阅读量(访客 id 从 header 拿,缺省 'anon') */
+async function recordView(req, res, next) {
+  try {
+    const { id } = req.params
+    const visitorId = (req.headers['x-visitor-id'] || 'anon').toString().slice(0, 64)
+    const post = await postService.recordView(parseInt(id), visitorId)
+    return ApiResponse.success(res, post)
+  } catch (error) {
+    if (error.code === 'POST_NOT_FOUND') {
+      return ApiResponse.notFound(res, error.message)
+    }
+    next(error)
+  }
+}
+
+/** 切换点赞 */
+async function toggleLike(req, res, next) {
+  try {
+    const { id } = req.params
+    const visitorId = (req.headers['x-visitor-id'] || 'anon').toString().slice(0, 64)
+    const result = await postService.toggleLike(parseInt(id), visitorId)
+    return ApiResponse.success(res, result)
+  } catch (error) {
+    if (error.code === 'POST_NOT_FOUND') {
+      return ApiResponse.notFound(res, error.message)
+    }
+    next(error)
+  }
+}
+
+/** 获取点赞状态 */
+async function getLikeStatus(req, res, next) {
+  try {
+    const { id } = req.params
+    const visitorId = (req.headers['x-visitor-id'] || 'anon').toString().slice(0, 64)
+    const result = await postService.getLikeStatus(parseInt(id), visitorId)
+    return ApiResponse.success(res, result)
+  } catch (error) {
+    if (error.code === 'POST_NOT_FOUND') {
+      return ApiResponse.notFound(res, error.message)
+    }
+    next(error)
+  }
+}
+
+/** 获取上下篇 */
+async function getAdjacentPosts(req, res, next) {
+  try {
+    const { id } = req.params
+    const result = await postService.getAdjacentPosts(parseInt(id))
+    return ApiResponse.success(res, result)
+  } catch (error) {
+    if (error.code === 'POST_NOT_FOUND') {
+      return ApiResponse.notFound(res, error.message)
+    }
+    next(error)
+  }
+}
+
 module.exports = {
   getPosts,
   getPostById,
   createPost,
   updatePost,
   deletePost,
+  // 阅读 / 点赞 / 上下篇
+  recordView,
+  toggleLike,
+  getLikeStatus,
+  getAdjacentPosts,
 }

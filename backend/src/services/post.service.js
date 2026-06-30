@@ -361,6 +361,117 @@ class PostService {
       },
     })
   }
+
+  /**
+   * 记录阅读量(同一访客 30 分钟内只计一次)
+   * 访客 ID 通过 X-Visitor-Id header 传入(由前端生成持久化)
+   */
+  async recordView(id, visitorId) {
+    // 30 分钟内同访客不计
+    const since = new Date(Date.now() - 30 * 60 * 1000)
+    const recent = await prisma.postView.findFirst({
+      where: {
+        postId: id,
+        visitorId,
+        createdAt: { gte: since },
+      },
+    })
+    if (recent) {
+      return prisma.post.findUnique({ where: { id }, select: { viewCount: true } })
+    }
+    await prisma.postView.create({ data: { postId: id, visitorId } })
+    const post = await prisma.post.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+      select: { viewCount: true },
+    })
+    return post
+  }
+
+  /**
+   * 切换点赞(同一访客只点赞一次,可取消)
+   */
+  async toggleLike(id, visitorId) {
+    const existing = await prisma.postLike.findFirst({
+      where: { postId: id, visitorId },
+    })
+    if (existing) {
+      await prisma.postLike.delete({
+        where: { postId_visitorId: { postId: id, visitorId } },
+      })
+      const post = await prisma.post.update({
+        where: { id },
+        data: { likeCount: { decrement: 1 } },
+        select: { likeCount: true },
+      })
+      return { liked: false, likeCount: Math.max(0, post.likeCount) }
+    }
+    await prisma.postLike.create({ data: { postId: id, visitorId } })
+    const post = await prisma.post.update({
+      where: { id },
+      data: { likeCount: { increment: 1 } },
+      select: { likeCount: true },
+    })
+    return { liked: true, likeCount: post.likeCount }
+  }
+
+  /**
+   * 获取点赞状态
+   */
+  async getLikeStatus(id, visitorId) {
+    const liked = !!(await prisma.postLike.findFirst({
+      where: { postId: id, visitorId },
+    }))
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { likeCount: true },
+    })
+    return { liked, likeCount: post?.likeCount ?? 0 }
+  }
+
+  /**
+   * 获取上下篇(同分类、按时间顺序)
+   */
+  async getAdjacentPosts(id) {
+    const current = await prisma.post.findUnique({
+      where: { id },
+      select: { categoryId: true, createdAt: true },
+    })
+    if (!current) {
+      const err = new Error('文章不存在'); err.code = 'POST_NOT_FOUND'; throw err
+    }
+    const baseWhere = { isDeleted: false, status: 'published' }
+
+    // 上一篇:同分类 + 时间更早,或(同分类 + 同一时间但 id 更小),取最近
+    const prev = await prisma.post.findFirst({
+      where: {
+        ...baseWhere,
+        categoryId: current.categoryId,
+        OR: [
+          { createdAt: { lt: current.createdAt } },
+          { createdAt: current.createdAt, id: { lt: id } },
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { id: true, title: true, slug: true, createdAt: true },
+    })
+
+    // 下一篇:同分类 + 时间更晚
+    const next = await prisma.post.findFirst({
+      where: {
+        ...baseWhere,
+        categoryId: current.categoryId,
+        OR: [
+          { createdAt: { gt: current.createdAt } },
+          { createdAt: current.createdAt, id: { gt: id } },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, title: true, slug: true, createdAt: true },
+    })
+
+    return { prev, next }
+  }
 }
 
 module.exports = new PostService()

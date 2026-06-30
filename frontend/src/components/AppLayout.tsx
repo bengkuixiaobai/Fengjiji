@@ -1,9 +1,9 @@
 import { ReactNode, useState } from 'react'
 import { Layout, Menu, Avatar, Dropdown, Space, Button, Switch, Tooltip, Badge } from 'antd'
 import {
-  UserOutlined, LogoutOutlined, SettingOutlined,
+  UserOutlined, LogoutOutlined, SettingOutlined, MessageOutlined,
   HomeOutlined, FileTextOutlined, ProjectOutlined,
-  SunOutlined, MoonOutlined, BellOutlined,
+  SunOutlined, MoonOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
@@ -28,6 +28,7 @@ interface AppLayoutProps {
 
 const userMenuItems = [
   { key: 'profile', icon: <UserOutlined />, label: '个人中心' },
+  { key: 'messages', icon: <MessageOutlined />, label: '消息中心' },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
   { type: 'divider' as const },
   { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
@@ -69,10 +70,27 @@ function AppLayout({
       case 'home':
         navigate('/')
         break
-      case 'blogs':
+      // 博客下拉
+      case 'blogs-view':
+        navigate('/blogs')
+        break
+      case 'blogs-manage':
         navigate('/blog')
         break
+      // 项目下拉
+      case 'projects-view':
+        navigate('/projects')
+        break
+      case 'projects-manage':
+        navigate('/projects/manage')
+        break
     }
+  }
+
+  // SubMenu 父项整体区域点击 — 跳转到默认子项,鼠标悬停依然展开下拉
+  const handleParentLabelClick = (path: string) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate(path)
   }
 
   const handleLogout = () => {
@@ -88,6 +106,9 @@ function AppLayout({
 
   const handleUserMenuClick = ({ key }: { key: string }) => {
     if (key === 'logout') handleLogout()
+    else if (key === 'profile') navigate('/profile')
+    else if (key === 'messages') navigate('/notifications')
+    else if (key === 'settings') navigate('/settings')
   }
 
   return (
@@ -117,16 +138,49 @@ function AppLayout({
           <span style={{ color: textColor, fontWeight: 700, fontSize: '18px' }}>风迹集</span>
         </div>
 
-        {/* 导航菜单 — 所有页面统一显示 */}
+        {/* 导航菜单 — 鼠标悬停展开下拉,父项整体可点击导航到默认子项 */}
         <Menu
           mode="horizontal"
           selectedKeys={[selectedKey]}
+          triggerSubMenuAction="hover"
           style={{ background: 'transparent', border: 'none', flex: 1 }}
           onClick={handleNavClick}
           items={[
             { key: 'home', icon: <HomeOutlined />, label: '首页' },
-            { key: 'blogs', icon: <FileTextOutlined />, label: '博客' },
-            { key: 'projects', icon: <ProjectOutlined />, label: '项目' },
+            {
+              key: 'blogs',
+              label: (
+                <span
+                  onClick={handleParentLabelClick('/blogs')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <FileTextOutlined style={{ fontSize: '14px' }} />
+                  博客
+                </span>
+              ),
+              popupClassName: 'nav-submenu',
+              children: [
+                { key: 'blogs-view', label: '博客浏览' },
+                { key: 'blogs-manage', label: '博客管理' },
+              ],
+            },
+            {
+              key: 'projects',
+              label: (
+                <span
+                  onClick={handleParentLabelClick('/projects')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <ProjectOutlined style={{ fontSize: '14px' }} />
+                  项目
+                </span>
+              ),
+              popupClassName: 'nav-submenu',
+              children: [
+                { key: 'projects-view', label: '项目浏览' },
+                { key: 'projects-manage', label: '项目管理' },
+              ],
+            },
           ]}
         />
 
@@ -141,16 +195,23 @@ function AppLayout({
             />
           </Tooltip>
           {checkinExtra}
-          <Badge count={3}>
-            <Button type="text" icon={<BellOutlined />} style={{ color: secondaryTextColor }} />
-          </Badge>
+          <Tooltip title="消息中心">
+            <Badge count={3} size="small">
+              <Button
+                type="text"
+                icon={<MessageOutlined />}
+                onClick={() => navigate('/notifications')}
+                style={{ color: secondaryTextColor }}
+              />
+            </Badge>
+          </Tooltip>
           <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }}>
             <Space style={{ cursor: 'pointer' }}>
               <Avatar
                 size="small"
                 icon={<UserOutlined />}
                 src={user?.avatar}
-                style={{ backgroundColor: '#667eea' }}
+                style={{ backgroundColor: 'var(--accent-start)' }}
               />
               <span style={{ color: textColor }}>{user?.nickname || user?.username}</span>
             </Space>

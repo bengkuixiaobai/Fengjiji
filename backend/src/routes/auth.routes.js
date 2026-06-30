@@ -1,9 +1,19 @@
 const express = require('express')
 const router = express.Router()
 const Joi = require('joi')
+const rateLimit = require('express-rate-limit')
 const authController = require('../controllers/auth.controller')
 const { authenticate } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
+
+// P3-16:登录/注册限流(单 IP 每分钟最多 5 次,15 分钟内最多 20 次)
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { success: false, error: { code: 'RATE_LIMIT', message: '请求过于频繁,请稍后再试' } },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // 验证中间件
 function validate(schema) {
@@ -58,14 +68,14 @@ const refreshSchema = Joi.object({
  * @desc    用户注册
  * @access  Public
  */
-router.post('/register', validate(registerSchema), authController.register)
+router.post('/register', authLimiter, validate(registerSchema), authController.register)
 
 /**
  * @route   POST /api/auth/login
  * @desc    用户登录
  * @access  Public
  */
-router.post('/login', validate(loginSchema), authController.login)
+router.post('/login', authLimiter, validate(loginSchema), authController.login)
 
 /**
  * @route   POST /api/auth/refresh

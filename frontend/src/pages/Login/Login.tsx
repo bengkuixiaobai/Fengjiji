@@ -1,4 +1,4 @@
-import { Form, Input, Button, Checkbox, message } from 'antd'
+import { Form, Input, Button, Checkbox, message, Tooltip } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
@@ -27,9 +27,10 @@ function Login() {
       })
 
       if (response.success && response.data) {
-        const { user, token } = response.data
-        setAuth(user, token)
+        const { user, token, refreshToken } = response.data
+        setAuth(user, token, refreshToken)
         localStorage.setItem('auth-token', token)
+        if (refreshToken) localStorage.setItem('auth-refresh-token', refreshToken)
         message.success('登录成功！')
         navigate('/')
       } else {
@@ -129,9 +130,11 @@ function Login() {
               <Form.Item name="remember" valuePropName="checked" noStyle>
                 <Checkbox>记住我</Checkbox>
               </Form.Item>
-              <Link to="/forgot-password" className={styles.forgotLink}>
-                忘记密码？
-              </Link>
+              <Tooltip title="如需重置密码,请联系系统管理员">
+                <span className={styles.forgotLink} style={{ cursor: 'help' }}>
+                  忘记密码？
+                </span>
+              </Tooltip>
             </div>
 
             <Form.Item>

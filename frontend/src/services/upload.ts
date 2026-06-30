@@ -1,4 +1,4 @@
-import apiClient from './auth'
+import apiClient from './apiClient'
 
 export interface UploadResponse {
   success: boolean

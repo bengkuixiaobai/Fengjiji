@@ -1,4 +1,7 @@
-import apiClient from './auth'
+import apiClient from './apiClient'
+import { listCategories as mockListCategories } from './mock/handlers'
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 export interface Category {
   id: number
@@ -32,15 +35,13 @@ export interface TagsResponse {
 
 // 获取所有分类
 export async function getCategories(): Promise<CategoriesResponse> {
+  if (USE_MOCK) return mockListCategories()
   const response = await apiClient.get<CategoriesResponse>('/categories')
   return response.data
 }
 
-// 获取所有标签
-export async function getTags(): Promise<TagsResponse> {
-  const response = await apiClient.get<TagsResponse>('/tags')
-  return response.data
-}
+// 获取所有标签(保留在此文件作为向后兼容 re-export)
+export { getTags } from './tag'
 
 // 创建分类
 export async function createCategory(name: string): Promise<{ success: boolean; data?: Category }> {

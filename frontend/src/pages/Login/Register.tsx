@@ -36,9 +36,10 @@ function Register() {
       })
 
       if (response.success && response.data) {
-        const { user, token } = response.data
-        setAuth(user, token)
+        const { user, token, refreshToken } = response.data
+        setAuth(user, token, refreshToken)
         localStorage.setItem('auth-token', token)
+        if (refreshToken) localStorage.setItem('auth-refresh-token', refreshToken)
         message.success('注册成功！')
         navigate('/')
       } else {

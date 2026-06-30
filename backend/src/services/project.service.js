@@ -85,6 +85,7 @@ class ProjectService {
       name: project.name,
       description: project.description,
       techStack: project.techStack ? JSON.parse(project.techStack) : [],
+      plan: project.plan ? JSON.parse(project.plan) : [],
       codeUrl: project.codeUrl,
       demoUrl: project.demoUrl,
       status: project.status,
@@ -151,6 +152,7 @@ class ProjectService {
     return {
       ...project,
       techStack: project.techStack ? JSON.parse(project.techStack) : [],
+      plan: project.plan ? JSON.parse(project.plan) : [],
     }
   }
 
@@ -158,7 +160,8 @@ class ProjectService {
    * 创建项目
    */
   async createProject(authorId, data) {
-    const { name, description, techStack, codeUrl, demoUrl, status, isPublic } = data
+    const { name, description, techStack, codeUrl, demoUrl, status, isPublic,
+            startDate, expectedEndDate, bufferDays, plan } = data
 
     const project = await prisma.project.create({
       data: {
@@ -170,6 +173,10 @@ class ProjectService {
         status: status || 'planning',
         isPublic: isPublic !== false,
         authorId,
+        startDate: startDate ? new Date(startDate) : null,
+        expectedEndDate: expectedEndDate ? new Date(expectedEndDate) : null,
+        bufferDays: bufferDays ?? 0,
+        plan: plan ? JSON.stringify(plan) : null,
       },
       include: {
         author: {
@@ -186,6 +193,7 @@ class ProjectService {
     return {
       ...project,
       techStack: project.techStack ? JSON.parse(project.techStack) : [],
+      plan: project.plan ? JSON.parse(project.plan) : [],
     }
   }
 
@@ -193,7 +201,8 @@ class ProjectService {
    * 更新项目
    */
   async updateProject(id, authorId, data) {
-    const { name, description, techStack, codeUrl, demoUrl, status, isPublic, completionRate } = data
+    const { name, description, techStack, codeUrl, demoUrl, status, isPublic, completionRate,
+            startDate, expectedEndDate, bufferDays, plan } = data
 
     const existing = await prisma.project.findUnique({
       where: { id },
@@ -218,6 +227,10 @@ class ProjectService {
         status,
         isPublic,
         completionRate,
+        startDate: startDate !== undefined ? (startDate ? new Date(startDate) : null) : undefined,
+        expectedEndDate: expectedEndDate !== undefined ? (expectedEndDate ? new Date(expectedEndDate) : null) : undefined,
+        bufferDays: bufferDays !== undefined ? bufferDays : undefined,
+        plan: plan !== undefined ? (plan ? JSON.stringify(plan) : null) : undefined,
         completedAt: status === 'completed' && !existing.completedAt ? new Date() : existing.completedAt,
       },
       include: {
@@ -235,6 +248,7 @@ class ProjectService {
     return {
       ...project,
       techStack: project.techStack ? JSON.parse(project.techStack) : [],
+      plan: project.plan ? JSON.parse(project.plan) : [],
     }
   }
 
