@@ -74,6 +74,7 @@
 | `INVALID_CREDENTIALS` | 401 | 用户名/密码错误 |
 | `INVITE_INVALID` | 400 | 邀请码无效 |
 | `INVITE_USED` | 400 | 邀请码已被使用 |
+| `INVITE_EXHAUSTED` | 400 | 邀请码已被使用 5 次,达上限 |
 | `SERVER_ERROR` | 500 | 服务器内部错误 |
 
 ### 1.4 认证方式
@@ -120,10 +121,10 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "username": "admin",
-  "email": "admin@example.com",
+  "username": "newuser",
+  "email": "newuser@example.com",
   "password": "password123",
-  "inviteCode": "FENGJI2026"
+  "inviteCode": "FJ-7K9A-X3M2"
 }
 ```
 
@@ -231,6 +232,44 @@ Authorization: Bearer <access_token>
 ---
 
 ## 3. 用户模块
+
+### GET /users/me/invite-code
+
+获取当前登录用户的邀请码信息（每个用户唯一，最长邀请 5 人）。
+
+**Auth**：需登录
+
+**Response `200`**：
+
+```json
+{
+  "success": true,
+  "data": {
+    "code": "FJ-7K9A-X3M2",
+    "usageCount": 2,
+    "maxUsage": 5,
+    "remaining": 3
+  }
+}
+```
+
+**说明**：
+
+- 如果用户没有邀请码（老用户迁移等情况），会自动生成一个
+- `usageCount` — 该邀请码已被新用户注册使用的次数
+- `maxUsage` — 固定为 5
+- `remaining` — 剩余可用名额
+
+**字段说明**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `code` | string | 邀请码字符串，格式 `FJ-XXXX-XXXX`（去易混淆字符） |
+| `usageCount` | number | 已被使用的次数 |
+| `maxUsage` | number | 最大使用次数（固定 5） |
+| `remaining` | number | 剩余可用名额 |
+
+---
 
 ### GET /users/me
 

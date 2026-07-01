@@ -136,6 +136,18 @@ async function logout(req, res, next) {
   return ApiResponse.success(res, null, '登出成功')
 }
 
+/**
+ * 获取当前用户的邀请码
+ */
+async function getMyInviteCode(req, res, next) {
+  try {
+    const inviteInfo = await authService.getMyInviteCode(req.userId)
+    return ApiResponse.success(res, inviteInfo)
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -144,4 +156,5 @@ module.exports = {
   updateProfile,
   changePassword,
   logout,
+  getMyInviteCode,
 }
