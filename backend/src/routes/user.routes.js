@@ -53,4 +53,11 @@ router.put('/me', authenticate, validate(updateProfileSchema), authController.up
  */
 router.put('/me/password', authenticate, validate(changePasswordSchema), authController.changePassword)
 
+/**
+ * @route   GET /api/users/me/invite-code
+ * @desc    获取当前用户的邀请码
+ * @access  Private
+ */
+router.get('/me/invite-code', authenticate, authController.getMyInviteCode)
+
 module.exports = router

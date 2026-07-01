@@ -1,13 +1,27 @@
 const bcrypt = require('bcrypt')
+const crypto = require('crypto')
 const { PrismaClient } = require('@prisma/client')
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../middleware/auth.middleware')
 
 const prisma = new PrismaClient()
 const SALT_ROUNDS = 12
 
+/** 生成 8 位邀请码,格式 FJ-XXXX-XXXX */
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // 去掉易混淆字符
+  const part = () =>
+    Array.from(crypto.randomBytes(4))
+      .map(b => chars[b % chars.length])
+      .join('')
+  return `FJ-${part()}-${part()}`
+}
+
 class AuthService {
   /**
    * 用户注册
+   * - 必须有有效邀请码
+   * - 邀请码的 creator 已邀请人数必须 < 5
+   * - 注册成功后给新用户生成一个邀请码
    */
   async register(username, email, password, inviteCode) {
     // 检查邀请码
@@ -18,9 +32,11 @@ class AuthService {
     if (!code) {
       throw { code: 'INVITE_INVALID', message: '邀请码无效' }
     }
-    if (code.usedById) {
-      throw { code: 'INVITE_USED', message: '邀请码已被使用' }
+    // 检查使用次数上限
+    if (code.usageCount >= code.maxUsage) {
+      throw { code: 'INVITE_EXHAUSTED', message: `该邀请码已被使用 ${code.maxUsage} 次,无法再邀请新用户` }
     }
+    // 兼容旧数据:如果之前是 usedById 模式但没转过来,跳过 (新 schema 里这个列已删)
 
     // 检查用户是否存在
     const existingUser = await prisma.user.findFirst({
@@ -46,6 +62,7 @@ class AuthService {
         email,
         password: passwordHash,
         nickname: username,
+        role: 'admin', // 通过邀请码注册的都是 admin(体验访客在 seed 创建)
       },
       select: {
         id: true,
@@ -59,10 +76,19 @@ class AuthService {
       },
     })
 
-    // 标记邀请码已使用
+    // 增加邀请码使用次数
     await prisma.inviteCode.update({
       where: { id: code.id },
-      data: { usedById: user.id, usedAt: new Date() },
+      data: { usageCount: { increment: 1 } },
+    })
+
+    // 给新用户生成一个邀请码(每人一码,最多邀请 5 人)
+    await prisma.inviteCode.create({
+      data: {
+        code: generateInviteCode(),
+        creatorId: user.id,
+        maxUsage: 5,
+      },
     })
 
     // 生成 Token
@@ -76,32 +102,28 @@ class AuthService {
    * 用户登录
    */
   async login(usernameOrEmail, password) {
-    // 判断是邮箱还是用户名登录
     const isEmail = usernameOrEmail.includes('@')
 
-    // 查找用户
     const user = await prisma.user.findFirst({
       where: isEmail
         ? { email: usernameOrEmail }
-        : { username: usernameOrEmail },
+        : { username: usernameOrEmail,
+        },
     })
 
     if (!user) {
       throw { code: 'INVALID_CREDENTIALS', message: '用户名/邮箱或密码错误' }
     }
 
-    // 验证密码
     const isValid = await bcrypt.compare(password, user.password)
 
     if (!isValid) {
       throw { code: 'INVALID_CREDENTIALS', message: '用户名/邮箱或密码错误' }
     }
 
-    // 生成 Token
     const token = generateToken(user.id)
     const refreshToken = generateRefreshToken(user.id)
 
-    // 返回用户信息（不含密码）
     const userData = {
       id: user.id,
       username: user.username,
@@ -125,7 +147,6 @@ class AuthService {
       throw { code: 'INVALID_REFRESH_TOKEN', message: 'Refresh Token 无效' }
     }
 
-    // 查找用户
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
     })
@@ -134,7 +155,6 @@ class AuthService {
       throw { code: 'USER_NOT_FOUND', message: '用户不存在' }
     }
 
-    // 生成新 Token
     const newToken = generateToken(user.id)
     const newRefreshToken = generateRefreshToken(user.id)
 
@@ -165,6 +185,34 @@ class AuthService {
     }
 
     return user
+  }
+
+  /**
+   * 获取当前用户的邀请码信息
+   * 返回:邀请码本身 + 已使用次数 + 上限
+   */
+  async getMyInviteCode(userId) {
+    let code = await prisma.inviteCode.findFirst({
+      where: { creatorId: userId },
+    })
+
+    // 如果还没有邀请码(老用户迁移等情况),自动生成一个
+    if (!code) {
+      code = await prisma.inviteCode.create({
+        data: {
+          code: generateInviteCode(),
+          creatorId: userId,
+          maxUsage: 5,
+        },
+      })
+    }
+
+    return {
+      code: code.code,
+      usageCount: code.usageCount,
+      maxUsage: code.maxUsage,
+      remaining: Math.max(0, code.maxUsage - code.usageCount),
+    }
   }
 
   /**
@@ -200,7 +248,6 @@ class AuthService {
    * 修改密码
    */
   async changePassword(userId, oldPassword, newPassword) {
-    // 获取用户
     const user = await prisma.user.findUnique({
       where: { id: userId },
     })
@@ -209,17 +256,14 @@ class AuthService {
       throw { code: 'USER_NOT_FOUND', message: '用户不存在' }
     }
 
-    // 验证旧密码
     const isValid = await bcrypt.compare(oldPassword, user.password)
 
     if (!isValid) {
       throw { code: 'WRONG_PASSWORD', message: '旧密码错误' }
     }
 
-    // 加密新密码
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS)
 
-    // 更新密码
     await prisma.user.update({
       where: { id: userId },
       data: { password: passwordHash },

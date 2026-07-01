@@ -2,13 +2,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Row, Col, Tag, Button, Spin, Form, Input, Modal, message,
+  Row, Col, Tag, Button, Spin, Form, Input, Modal, message, Tooltip, Progress,
 } from 'antd'
 import {
   ArrowLeftOutlined, FileTextOutlined, ProjectOutlined,
   CalendarOutlined, EyeOutlined, CheckCircleOutlined,
   LockOutlined, LogoutOutlined, GithubOutlined, GlobalOutlined,
-  EditOutlined, CloseOutlined, CameraOutlined,
+  EditOutlined, CloseOutlined, CameraOutlined, CopyOutlined, CheckOutlined,
+  TeamOutlined, GiftOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import AppLayout from '../components/AppLayout'
@@ -16,7 +17,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getDashboardStats } from '../services/stats'
 import { getPosts } from '../services/post'
 import { getProjects } from '../services/project'
-import { logout as apiLogout, updateMe, changePassword, getCurrentUser } from '../services/auth'
+import { logout as apiLogout, updateMe, changePassword, getCurrentUser, getMyInviteCode, type InviteCodeInfo } from '../services/auth'
 import { useUserAvatar } from '../hooks/useUserAvatar'
 
 interface Stats {
@@ -41,6 +42,9 @@ function Profile() {
   const [pwdForm] = Form.useForm()
   const [pwdModalOpen, setPwdModalOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  // 邀请码相关
+  const [inviteInfo, setInviteInfo] = useState<InviteCodeInfo | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -64,10 +68,11 @@ function Profile() {
     let cancelled = false
     ;(async () => {
       try {
-        const [statsRes, postsRes, projectsRes] = await Promise.all([
+        const [statsRes, postsRes, projectsRes, inviteRes] = await Promise.all([
           getDashboardStats(),
           getPosts({ authorId: user.id, limit: 5 }),
           getProjects({ authorId: user.id, limit: 5 }),
+          getMyInviteCode(),
         ])
         if (cancelled) return
         if (statsRes.success && statsRes.data) {
@@ -80,12 +85,35 @@ function Profile() {
         }
         if (postsRes.success && postsRes.data) setRecentPosts(postsRes.data.posts || [])
         if (projectsRes.success && projectsRes.data) setRecentProjects(projectsRes.data.projects || [])
+        if (inviteRes.success && inviteRes.data) setInviteInfo(inviteRes.data)
       } catch (e) {
         // 静默失败
       }
     })()
     return () => { cancelled = true }
   }, [user])
+
+  // 复制邀请码
+  const handleCopyInvite = async () => {
+    if (!inviteInfo) return
+    try {
+      await navigator.clipboard.writeText(inviteInfo.code)
+      setCopied(true)
+      message.success('邀请码已复制到剪贴板')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // 降级方案:用 execCommand
+      const textarea = document.createElement('textarea')
+      textarea.value = inviteInfo.code
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopied(true)
+      message.success('邀请码已复制')
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   if (!user) {
     return (
@@ -462,6 +490,110 @@ function Profile() {
             )}
           </ProfileSection>
         </Form>
+
+        {/* ===== 1.5 我的邀请码 ===== */}
+        {inviteInfo && (
+          <div style={{
+            background: 'var(--card-bg)',
+            border: 'var(--card-border)',
+            borderRadius: '14px',
+            padding: '24px 28px',
+            marginBottom: 16,
+            boxShadow: 'var(--shadow-sm)',
+            backgroundImage: 'linear-gradient(135deg, rgba(102,126,234,0.06), rgba(118,75,162,0.06))',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 9,
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: 15,
+                boxShadow: '0 2px 8px rgba(102,126,234,0.25)',
+              }}>
+                <GiftOutlined />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'var(--text-color)', fontSize: 15, fontWeight: 700 }}>我的邀请码</span>
+                  <Tag color="purple" style={{ fontSize: 10, padding: '0 8px', borderRadius: 10, fontWeight: 600 }}>
+                    <TeamOutlined /> 最多邀请 5 人
+                  </Tag>
+                </div>
+                <div style={{ color: 'var(--muted-text)', fontSize: 12, marginTop: 2 }}>
+                  把邀请码发给朋友,他们注册后你也算邀请成功
+                </div>
+              </div>
+            </div>
+
+            {/* 邀请码展示 */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '16px 20px',
+              background: 'var(--segmented-bg)',
+              border: '1px solid var(--input-border)',
+              borderRadius: 10,
+              marginBottom: 12,
+            }}>
+              <div style={{
+                flex: 1,
+                fontFamily: '"JetBrains Mono", Consolas, Monaco, monospace',
+                fontSize: 22, fontWeight: 700,
+                color: 'var(--accent-start)',
+                letterSpacing: '1.5px',
+                textAlign: 'center',
+                userSelect: 'all',
+              }}>
+                {inviteInfo.code}
+              </div>
+              <Tooltip title={copied ? '已复制' : '复制邀请码'}>
+                <Button
+                  type={copied ? 'default' : 'primary'}
+                  icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+                  onClick={handleCopyInvite}
+                  style={{ borderRadius: 8, fontWeight: 600, minWidth: 88 }}
+                  className={copied ? '' : 'fjj-btn-primary'}
+                >
+                  {copied ? '已复制' : '复制'}
+                </Button>
+              </Tooltip>
+            </div>
+
+            {/* 使用进度 */}
+            <div style={{ marginTop: 4 }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                marginBottom: 6,
+              }}>
+                <span style={{ color: 'var(--secondary-text)', fontSize: 13, fontWeight: 500 }}>
+                  已邀请 <span style={{ color: 'var(--accent-start)', fontWeight: 700 }}>{inviteInfo.usageCount}</span> / {inviteInfo.maxUsage} 人
+                </span>
+                <span style={{ color: 'var(--muted-text)', fontSize: 12 }}>
+                  剩余 <span style={{ fontWeight: 600 }}>{inviteInfo.remaining}</span> 个名额
+                </span>
+              </div>
+              <Progress
+                percent={Math.round((inviteInfo.usageCount / inviteInfo.maxUsage) * 100)}
+                strokeColor={{ '0%': 'var(--accent-start)', '100%': 'var(--accent-end)' }}
+                showInfo={false}
+                size={{ height: 6 }}
+              />
+              {inviteInfo.remaining === 0 && (
+                <div style={{
+                  marginTop: 8,
+                  padding: '8px 12px',
+                  background: 'rgba(245, 154, 35, 0.1)',
+                  border: '1px solid rgba(245, 154, 35, 0.3)',
+                  borderRadius: 6,
+                  color: '#d4880f',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}>
+                  ⚠️ 邀请名额已用完,无法再邀请新用户
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ===== 2. 最近动态(双栏) ===== */}
         <Row gutter={16}>

@@ -64,12 +64,25 @@ npm run dev
 | http://localhost:5173 | 前端开发服务器 |
 | http://localhost:3000/api/health | 后端健康检查 |
 
-**初始管理员账号**（seed 后控制台输出）：
+**初始账号**（密码由环境变量控制，必须设置）：
 
-- username: `admin`
-- password: `Admin@123456` （首次登录后请立即修改）
+```bash
+# 必填：管理员密码
+export ADMIN_PASSWORD="your-strong-password-here"
 
-**默认邀请码**：`FENGJI2026`
+# 可选：访客体验账号
+export GUEST_PASSWORD="guest-demo-password"
+
+# 然后再跑 seed
+node prisma/seed.js
+```
+
+| 角色 | username | 密码 |
+|------|----------|------|
+| 管理员（admin） | `admin` | `ADMIN_PASSWORD` |
+| 体验访客（visitor） | `guest` | `GUEST_PASSWORD`（仅当设置了才创建）|
+
+**邀请码机制**：每个用户（管理员、访客、通过邀请注册的用户）自动拥有一个邀请码，最多邀请 5 人。可在「个人中心 → 我的邀请码」查看并复制。
 
 ---
 
@@ -155,6 +168,7 @@ fengjiji/
 4. [环境变量参考](docs/04-环境变量参考.md) — 所有 env 变量与生成方法
 5. [安全加固指南](docs/05-安全加固指南.md) — 服务器/应用/数据库三层加固
 6. [常见问题排查](docs/06-常见问题排查.md) — 启动/数据库/前端/性能 FAQ
+7. **[部署清单与首次配置](docs/部署清单与首次配置.md)** — 云服务器购买清单 + 首次登录 10 件事
 
 ### 📐 设计阶段文档
 

@@ -83,4 +83,20 @@ export async function changePassword(data: { oldPassword: string; newPassword: s
   return response.data
 }
 
+/** 获取当前用户的邀请码 */
+export interface InviteCodeInfo {
+  code: string
+  usageCount: number
+  maxUsage: number
+  remaining: number
+}
+
+export async function getMyInviteCode(): Promise<{
+  success: boolean
+  data?: InviteCodeInfo
+}> {
+  const response = await apiClient.get('/users/me/invite-code')
+  return response.data
+}
+
 export default apiClient
