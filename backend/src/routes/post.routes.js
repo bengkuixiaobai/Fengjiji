@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Joi = require('joi')
 const postController = require('../controllers/post.controller')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 // 验证中间件
@@ -67,21 +67,21 @@ router.get('/:id', postController.getPostById)
  * @desc    创建文章
  * @access  Private
  */
-router.post('/', authenticate, validate(createPostSchema), postController.createPost)
+router.post('/', authenticate, requireRole('admin'), validate(createPostSchema), postController.createPost)
 
 /**
  * @route   PUT /api/posts/:id
  * @desc    更新文章
- * @access  Private
+ * @access  Private (admin)
  */
-router.put('/:id', authenticate, validate(updatePostSchema), postController.updatePost)
+router.put('/:id', authenticate, requireRole('admin'), validate(updatePostSchema), postController.updatePost)
 
 /**
  * @route   DELETE /api/posts/:id
  * @desc    删除文章
- * @access  Private
+ * @access  Private (admin)
  */
-router.delete('/:id', authenticate, postController.deletePost)
+router.delete('/:id', authenticate, requireRole('admin'), postController.deletePost)
 
 /**
  * @route   POST /api/posts/:id/view

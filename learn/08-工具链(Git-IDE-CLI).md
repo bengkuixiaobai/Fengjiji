@@ -514,7 +514,7 @@ curl http://localhost:3000/api/posts
 # POST 请求 + JSON + Header
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"usernameOrEmail":"admin","password":"Admin@123456"}'
+  -d '{"usernameOrEmail":"admin","password":"<your-password>"}'
 
 # 携带 token
 curl http://localhost:3000/api/users/me \

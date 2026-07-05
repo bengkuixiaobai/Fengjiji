@@ -61,7 +61,51 @@
 | `429` | 请求过于频繁（限流） |
 | `500` | 服务器内部错误 |
 
-### 1.3 错误码
+### 1.3 角色权限
+
+后端在 `auth.middleware.js` 提供 `requireRole(...roles)` 中间件：
+
+```js
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
+
+// 任何登录用户可访问
+router.get('/me', authenticate, getMyProfile)
+
+// 仅 admin 可访问
+router.post('/', authenticate, requireRole('admin'), createPost)
+```
+
+| 角色 | 权限范围 |
+|------|---------|
+| **admin** | 全部功能,可管理文章/项目/分类/标签/上传/统计/邀请 |
+| **visitor** | 仅浏览 + 个人资料修改 + 签到,无任何编辑权限 |
+
+#### 接口权限矩阵
+
+| 接口 | admin | visitor | 公开 |
+|------|:-----:|:-------:|:----:|
+| `GET /auth/login` | ✅ | ✅ | ✅ |
+| `POST /auth/register` | ✅ | ✅ | ✅ |
+| `GET /users/me` | ✅ | ✅ | - |
+| `PUT /users/me` | ✅ | ✅ | - |
+| `PUT /users/me/password` | ✅ | ✅ | - |
+| `GET /users/me/invite-code` | ✅ | ❌ | - |
+| `POST/PUT/DELETE /posts/*` | ✅ | ❌ | - |
+| `GET /posts` | - | - | ✅ |
+| `GET /posts/:id` | - | - | ✅ |
+| `POST /posts/:id/{view,like/*}` | - | - | ✅ |
+| `POST/PUT/DELETE /projects/*` | ✅ | ❌ | - |
+| `GET /projects` | - | - | ✅ |
+| `GET /projects/:id` | - | - | ✅ |
+| `POST /categories` / `DELETE /categories/:id` | ✅ | ❌ | - |
+| `GET /categories` | - | - | ✅ |
+| `POST /tags` | ✅ | ❌ | - |
+| `GET /tags` | - | - | ✅ |
+| `POST /upload` | ✅ | ❌ | - |
+| `GET/POST /checkins` | ✅ | ✅ | - |
+| `GET /stats/dashboard` | ✅ | ❌ | - |
+
+### 1.4 错误码
 
 | 错误码 | HTTP 状态 | 说明 |
 |--------|-----------|------|
@@ -77,7 +121,7 @@
 | `INVITE_EXHAUSTED` | 400 | 邀请码已被使用 5 次,达上限 |
 | `SERVER_ERROR` | 500 | 服务器内部错误 |
 
-### 1.4 认证方式
+### 1.5 认证方式
 
 Header 传参：
 
@@ -85,7 +129,7 @@ Header 传参：
 Authorization: Bearer <access_token>
 ```
 
-### 1.5 分页参数
+### 1.6 分页参数
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|

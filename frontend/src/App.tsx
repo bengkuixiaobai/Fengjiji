@@ -25,11 +25,17 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 
 // 受保护的路由组件
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const role = useAuthStore((state) => state.user?.role)
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  // 需要 admin 但用户不是 admin → 跳首页
+  if (requireAdmin && role !== 'admin') {
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>
@@ -146,7 +152,7 @@ function App() {
       <Route
         path="/projects/manage"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<PageLoading />}>
               <ProjectManage />
             </Suspense>
@@ -156,7 +162,7 @@ function App() {
       <Route
         path="/projects/new"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<PageLoading />}>
               <ProjectCreate />
             </Suspense>
@@ -208,7 +214,7 @@ function App() {
       <Route
         path="/blog"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<PageLoading />}>
               <BlogManage />
             </Suspense>
@@ -218,7 +224,7 @@ function App() {
       <Route
         path="/blog/create"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<PageLoading />}>
               <BlogEditor />
             </Suspense>
@@ -228,7 +234,7 @@ function App() {
       <Route
         path="/blog/edit/:id"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<PageLoading />}>
               <BlogEditor />
             </Suspense>

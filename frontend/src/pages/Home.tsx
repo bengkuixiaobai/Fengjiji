@@ -10,6 +10,7 @@ import { getProjects, Project } from '../services/project'
 import { getCategories } from '../services/category'
 import { getCheckIns, checkIn as apiCheckIn } from '../services/checkin'
 import { getDashboardStats } from '../services/stats'
+import { usePermission } from '../hooks/usePermission'
 
 const { TextArea } = Input
 
@@ -23,6 +24,7 @@ const statusMap: Record<string, string> = {
 function Home() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { canEdit } = usePermission()
   const [searchType, setSearchType] = useState('all')
   const [searchValue, setSearchValue] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -435,7 +437,9 @@ function Home() {
                     { label: <span><ClockCircleOutlined /> 最近</span>, value: 'recent' },
                     { label: <span><FireOutlined /> 热门</span>, value: 'hot' },
                   ]} value={postViewType} onChange={val => setPostViewType(val as string)} style={{ background: segmentedBg }} />
-                  <Button type="primary" size="small" icon={<PlusOutlined />} className="fjj-btn-primary" onClick={() => navigate('/blog/create')}>新建文章</Button>
+                  {canEdit && (
+                    <Button type="primary" size="small" icon={<PlusOutlined />} className="fjj-btn-primary" onClick={() => navigate('/blog/create')}>新建文章</Button>
+                  )}
                 </Space>
               }
               styles={{ header: { color: textColor }, body: { padding: 0 } }}
@@ -466,7 +470,7 @@ function Home() {
               className="hover-card"
               style={{ flex: 1, background: cardBg, border: cardBorder, borderRadius: '12px' }}
               title={<span>🚀 项目</span>}
-              extra={<Button type="primary" size="small" icon={<PlusOutlined />} className="fjj-btn-primary" onClick={() => setCreateProjectVisible(true)}>新建项目</Button>}
+              extra={canEdit && <Button type="primary" size="small" icon={<PlusOutlined />} className="fjj-btn-primary" onClick={() => setCreateProjectVisible(true)}>新建项目</Button>}
               styles={{ header: { color: textColor }, body: { padding: 0 } }}
             >
               <div style={{ padding: '8px 16px', borderBottom: dividerColor, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

@@ -19,6 +19,7 @@ import { getPosts } from '../services/post'
 import { getProjects } from '../services/project'
 import { logout as apiLogout, updateMe, changePassword, getCurrentUser, getMyInviteCode, type InviteCodeInfo } from '../services/auth'
 import { useUserAvatar } from '../hooks/useUserAvatar'
+import { usePermission } from '../hooks/usePermission'
 
 interface Stats {
   postsCount: number
@@ -32,6 +33,7 @@ function Profile() {
   const user = useAuthStore(s => s.user)
   const logout = useAuthStore(s => s.logout)
   const { avatar, uploadFromFile, clear } = useUserAvatar()
+  const { canInvite } = usePermission()
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [stats, setStats] = useState<Stats>({
     postsCount: 0, projectsCount: 0, checkinsCount: 0, totalViews: 0,
@@ -492,7 +494,7 @@ function Profile() {
         </Form>
 
         {/* ===== 1.5 我的邀请码 ===== */}
-        {inviteInfo && (
+        {canInvite && inviteInfo && (
           <div style={{
             background: 'var(--card-bg)',
             border: 'var(--card-border)',

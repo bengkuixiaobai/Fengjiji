@@ -4,7 +4,7 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const { fileTypeFromFile } = require('file-type')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 // 允许的图片 MIME 类型
@@ -46,7 +46,7 @@ const upload = multer({
  * @desc    上传图片
  * @access  Private
  */
-router.post('/', authenticate, (req, res, next) => {
+router.post('/', authenticate, requireRole('admin'), (req, res, next) => {
   upload.single('image')(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {

@@ -15,12 +15,15 @@ set -e  # 任何命令失败立即退出
 # CONFIG — 根据实际修改这些值
 # ============================================================
 
-# --- 必填 ---
+# --- 应用 ---
 APP_USER="fengjiji"               # 应用运行用户
-APP_DIR="/var/www/my_website"      # 项目部署目录
-DOMAIN="your-domain.com"           # 你的域名(不要带 https://)
-GIT_REPO="git@github.com:xxx/fengjiji.git"  # 你的 Git 仓库(SSH 或 HTTPS)
-GIT_BRANCH="main"                  # 部署的分支
+APP_DIR="/home/fengjiji/code/Fengjiji"   # 项目部署目录
+GIT_REPO="https://github.com/你的用户名/Fengjiji.git"  # 你的 Git 仓库
+GIT_BRANCH="main"                  # 部署的分支(通常是 main 或 master)
+
+# --- 域名(必填,先去 DNS 服务商配 A 记录指向本服务器 IP)---
+DOMAIN="fengjiji.example.com"
+DOMAIN_ALIAS="www.fengjiji.example.com"
 
 # --- 数据库 ---
 DB_NAME="fengjiji"
@@ -28,14 +31,17 @@ DB_USER="fengjiji_db"
 # 密码留空则自动生成(脚本会输出生成的密码)
 DB_PASSWORD=""
 
-# --- 后端 ---
-ADMIN_PASSWORD=""  # 管理员密码(留空则自动生成,会输出)
-GUEST_PASSWORD=""   # 访客密码(留空则不创建访客)
+# --- 后端账号 ---
+# 管理员密码(必填或留空自动生成,会输出)
+ADMIN_PASSWORD=""
+# 访客密码(留空则不创建访客账号)
+GUEST_PASSWORD=""
 
-# --- 端口 ---
+# --- 端口(默认值,一般不需要改)---
 SSH_PORT="22"
 HTTP_PORT="80"
 HTTPS_PORT="443"
+NODE_PORT="3000"
 
 # ============================================================
 # 工具函数
@@ -439,7 +445,7 @@ log "  ⚠️  请先确认 $DOMAIN 已通过 DNS A 记录指向 $(curl -s ifcon
 echo ""
 read -p "按 Enter 继续申请(或 Ctrl+C 取消,先去配 DNS)..."
 
-certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email >> "$LOG_FILE" 2>&1 || {
+certbot --nginx -d "$DOMAIN" -d "$DOMAIN_ALIAS" --non-interactive --agree-tos --register-unsafely-without-email >> "$LOG_FILE" 2>&1 || {
     log "❌ 证书申请失败,可能原因:"
     log "   1. 域名未解析到本 IP"
     log "   2. 80 端口被防火墙拦截"
@@ -466,11 +472,12 @@ echo "访问地址:https://$DOMAIN"
 echo ""
 echo "【账号信息】"
 echo "  管理员:username=admin"
-echo "  密码:$ADMIN_PASSWORD"
+echo "  密码:$ADMIN_PASSWORD (已用 bcrypt 哈希存储)"
+echo "  ⚠️  请妥善保存,此信息只在本次部署时显示一次"
 echo ""
 if [ "$GUEST_ENABLED" = true ]; then
-echo "  体验访客:username=guest"
-echo "  密码:$GUEST_PASSWORD"
+echo "  体验访客账号已创建"
+echo "  ⚠️  账号信息已保存到 /root/.fengjiji-deploy-info"
 echo ""
 fi
 echo "【数据库】"
@@ -505,14 +512,19 @@ echo ""
 # 保存所有重要信息到一个文件(方便日后查阅)
 cat > "/root/.fengjiji-deploy-info" <<EOF
 # 风迹集部署信息(请妥善保管)
+# 此文件权限 600,只有 root 可读
 DOMAIN=$DOMAIN
 APP_USER=$APP_USER
 APP_DIR=$APP_DIR
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
+ADMIN_USERNAME=admin
 ADMIN_PASSWORD=$ADMIN_PASSWORD
-$(if [ "$GUEST_ENABLED" = true ]; then echo "GUEST_PASSWORD=$GUEST_PASSWORD"; fi)
+$(if [ "$GUEST_ENABLED" = true ]; then
+  echo "GUEST_USERNAME=${GUEST_USERNAME:-guest}"
+  echo "GUEST_PASSWORD=$GUEST_PASSWORD"
+fi)
 EOF
 chmod 600 /root/.fengjiji-deploy-info
 
