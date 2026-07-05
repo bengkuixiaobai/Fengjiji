@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Joi = require('joi')
 const projectController = require('../controllers/project.controller')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 // 验证中间件
@@ -60,20 +60,20 @@ router.get('/:id', projectController.getProjectById)
  * @desc    创建项目
  * @access  Private
  */
-router.post('/', authenticate, validate(createProjectSchema), projectController.createProject)
+router.post('/', authenticate, requireRole('admin'), validate(createProjectSchema), projectController.createProject)
 
 /**
  * @route   PUT /api/projects/:id
  * @desc    更新项目
- * @access  Private
+ * @access  Private (admin)
  */
-router.put('/:id', authenticate, validate(updateProjectSchema), projectController.updateProject)
+router.put('/:id', authenticate, requireRole('admin'), validate(updateProjectSchema), projectController.updateProject)
 
 /**
  * @route   DELETE /api/projects/:id
  * @desc    删除项目
- * @access  Private
+ * @access  Private (admin)
  */
-router.delete('/:id', authenticate, projectController.deleteProject)
+router.delete('/:id', authenticate, requireRole('admin'), projectController.deleteProject)
 
 module.exports = router

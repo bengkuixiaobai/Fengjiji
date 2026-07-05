@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useThemeStore } from '../stores/themeStore'
+import { usePermission } from '../hooks/usePermission'
 import { logout } from '../services/auth'
 import BackgroundAnimation from './BackgroundAnimation'
 
@@ -46,6 +47,7 @@ function AppLayout({
   const navigate = useNavigate()
   const { user, logout: authLogout } = useAuthStore()
   const { isDarkMode, toggleTheme } = useThemeStore()
+  const { canManage } = usePermission()
   const [internalCollapsed, setInternalCollapsed] = useState(true)
 
   const dark = isDarkMode
@@ -161,7 +163,7 @@ function AppLayout({
               popupClassName: 'nav-submenu',
               children: [
                 { key: 'blogs-view', label: '博客浏览' },
-                { key: 'blogs-manage', label: '博客管理' },
+                ...(canManage ? [{ key: 'blogs-manage', label: '博客管理' }] : []),
               ],
             },
             {
@@ -178,7 +180,7 @@ function AppLayout({
               popupClassName: 'nav-submenu',
               children: [
                 { key: 'projects-view', label: '项目浏览' },
-                { key: 'projects-manage', label: '项目管理' },
+                ...(canManage ? [{ key: 'projects-manage', label: '项目管理' }] : []),
               ],
             },
           ]}

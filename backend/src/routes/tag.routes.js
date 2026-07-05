@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { PrismaClient } = require('@prisma/client')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 const prisma = new PrismaClient()
@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
  * @desc    创建标签
  * @access  Private
  */
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', authenticate, requireRole('admin'), async (req, res, next) => {
   try {
     const { name } = req.body
     if (!name) return ApiResponse.validationError(res, '请输入标签名称')

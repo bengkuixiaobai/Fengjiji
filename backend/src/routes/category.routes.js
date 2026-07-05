@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { PrismaClient } = require('@prisma/client')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 const prisma = new PrismaClient()
@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
  * @desc    创建分类
  * @access  Private
  */
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', authenticate, requireRole('admin'), async (req, res, next) => {
   try {
     const { name } = req.body
     if (!name) return ApiResponse.validationError(res, '请输入分类名称')
@@ -79,7 +79,7 @@ router.get('/:id', async (req, res, next) => {
  * @desc    删除分类
  * @access  Private
  */
-router.delete('/:id', authenticate, async (req, res, next) => {
+router.delete('/:id', authenticate, requireRole('admin'), async (req, res, next) => {
   try {
     const { id } = req.params
     // 将属于该分类的文章设为未分类

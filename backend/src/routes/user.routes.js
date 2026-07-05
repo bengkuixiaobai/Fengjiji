@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Joi = require('joi')
 const authController = require('../controllers/auth.controller')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 // 验证中间件
@@ -58,6 +58,6 @@ router.put('/me/password', authenticate, validate(changePasswordSchema), authCon
  * @desc    获取当前用户的邀请码
  * @access  Private
  */
-router.get('/me/invite-code', authenticate, authController.getMyInviteCode)
+router.get('/me/invite-code', authenticate, requireRole('admin'), authController.getMyInviteCode)
 
 module.exports = router

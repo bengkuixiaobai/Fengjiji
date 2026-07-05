@@ -26,12 +26,13 @@ const ADMIN = {
   role: 'admin',
 }
 
-// 体验访客配置(可选)
+// 体验访客配置(可选,通过环境变量 GUEST_PASSWORD 启用)
+// 如果不设置 GUEST_PASSWORD,则不创建访客账号
 const GUEST = {
-  username: 'guest',
-  email: 'guest@fengjiji.local',
+  username: process.env.GUEST_USERNAME || 'guest',
+  email: process.env.GUEST_EMAIL || 'guest@fengjiji.local',
   password: process.env.GUEST_PASSWORD,
-  nickname: '体验访客',
+  nickname: process.env.GUEST_NICKNAME || '体验访客',
   role: 'visitor',
 }
 
@@ -120,7 +121,7 @@ async function main() {
   console.log('  2. 访问 http://localhost:5173 (前端)')
   console.log('  3. 用管理员账号登录,首登后请立即修改密码')
   if (guest) {
-    console.log(`  4. 体验访客账号: username=guest, password=<你设置的 GUEST_PASSWORD>`)
+    console.log('  4. 体验访客账号已创建(账号信息未在控制台显示,自行到数据库或部署信息文件查看)')
   }
 }
 

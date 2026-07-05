@@ -119,7 +119,7 @@ Authorization: Bearer eyJhbGc...      ← 登录令牌
 
 {                                    ← 请求体(POST 才会有)
   "username": "admin",
-  "password": "Admin@123456"
+  "password": "<your-password>"
 }
 ```
 

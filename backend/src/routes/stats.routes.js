@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { PrismaClient } = require('@prisma/client')
-const { authenticate } = require('../middleware/auth.middleware')
+const { authenticate, requireRole } = require('../middleware/auth.middleware')
 const ApiResponse = require('../utils/response')
 
 const prisma = new PrismaClient()
@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
  * @desc    获取仪表盘统计数据
  * @access  Private
  */
-router.get('/dashboard', authenticate, async (req, res, next) => {
+router.get('/dashboard', authenticate, requireRole('admin'), async (req, res, next) => {
   try {
     const userId = req.userId
 

@@ -70,17 +70,19 @@ npm run dev
 # 必填：管理员密码
 export ADMIN_PASSWORD="your-strong-password-here"
 
-# 可选：访客体验账号
-export GUEST_PASSWORD="guest-demo-password"
+# 可选：访客体验账号(默认不创建,适合首次部署只创建管理员)
+export GUEST_PASSWORD="your-guest-password"
 
 # 然后再跑 seed
 node prisma/seed.js
 ```
 
-| 角色 | username | 密码 |
-|------|----------|------|
-| 管理员（admin） | `admin` | `ADMIN_PASSWORD` |
-| 体验访客（visitor） | `guest` | `GUEST_PASSWORD`（仅当设置了才创建）|
+**账号启用规则**：
+
+| 角色 | 启用条件 | 默认行为 |
+|------|----------|----------|
+| 管理员（admin） | **必须** 设置 `ADMIN_PASSWORD` | 不设会报错退出 |
+| 体验访客（visitor） | 可选,设置 `GUEST_PASSWORD` 才创建 | 默认不创建 |
 
 **邀请码机制**：每个用户（管理员、访客、通过邀请注册的用户）自动拥有一个邀请码，最多邀请 5 人。可在「个人中心 → 我的邀请码」查看并复制。
 

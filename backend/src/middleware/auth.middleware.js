@@ -97,7 +97,24 @@ function verifyRefreshToken(token) {
 
 module.exports = {
   authenticate,
+  requireRole,
   generateToken,
   generateRefreshToken,
   verifyRefreshToken,
+}
+
+/**
+ * 角色权限中间件
+ * 用法:requireRole('admin') 或 requireRole('admin', 'visitor')
+ */
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return ApiResponse.unauthorized(res, '未登录')
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return ApiResponse.forbidden(res, `此操作仅限 ${allowedRoles.join('/')} 角色,你的角色是 ${req.user.role}`)
+    }
+    next()
+  }
 }
