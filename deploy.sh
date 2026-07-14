@@ -18,12 +18,12 @@ set -e  # 任何命令失败立即退出
 # --- 应用 ---
 APP_USER="fengjiji"               # 应用运行用户
 APP_DIR="/home/fengjiji/code/Fengjiji"   # 项目部署目录
-GIT_REPO="https://github.com/你的用户名/Fengjiji.git"  # 你的 Git 仓库
-GIT_BRANCH="main"                  # 部署的分支(通常是 main 或 master)
+GIT_REPO="https://github.com/bengkuixiaobai/Fengjiji.git"  # Git 仓库(已配)
+GIT_BRANCH="main"                  # 部署的分支
 
-# --- 域名(必填,先去 DNS 服务商配 A 记录指向本服务器 IP)---
-DOMAIN="fengjiji.example.com"
-DOMAIN_ALIAS="www.fengjiji.example.com"
+# --- 域名(必填)---
+DOMAIN="fengjiji.top"
+DOMAIN_ALIAS="www.fengjiji.top"
 
 # --- 数据库 ---
 DB_NAME="fengjiji"
