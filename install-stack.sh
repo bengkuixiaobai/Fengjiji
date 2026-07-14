@@ -34,10 +34,20 @@ echo "▶ 3/5 PostgreSQL 16..."
 if command -v psql &> /dev/null; then
     echo "✓ 已安装: $(psql --version)"
 else
-    sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-    apt update
-    apt install -y postgresql-16
+    # 检测系统版本决定装哪版 PG
+    DISTRO=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
+    if [ "$DISTRO" = "focal" ] || [ "$DISTRO" = "jammy" ]; then
+        # Ubuntu 20.04/22.04 默认源里有 PG(12/14)
+        apt install -y postgresql
+    else
+        # 其他系统:用 PGDG 源
+        apt-get install -y wget gnupg
+        sh -c "echo 'deb http://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
+        wget --quiet -O /usr/share/keyrings/pgdg.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        sed -i "s|^deb |deb [signed-by=/usr/share/keyrings/pgdg.asc] |" /etc/apt/sources.list.d/pgdg.list
+        apt update
+        apt install -y postgresql-16
+    fi
     systemctl enable postgresql
     systemctl start postgresql
     echo "✓ 安装完成: $(psql --version)"

@@ -159,6 +159,24 @@ fi
 
 step "Step 3/7: 创建数据库 + 用户"
 
+# 自动检测 PostgreSQL 版本(Ubuntu 20.04 默认 PG 12,Ubuntu 22.04 可装 PG 16)
+if ! command -v psql &>/dev/null; then
+    log "❌ psql 未找到"
+    log "   Ubuntu 20.04: sudo apt install -y postgresql-12 postgresql-client-12"
+    log "   Ubuntu 22.04: 见 install-stack.sh 配置 PGDG 源"
+    exit 1
+fi
+
+PG_VERSION=$(psql --version | grep -oP 'PostgreSQL \K[0-9]+' | head -1)
+log "✅ 检测到 PostgreSQL $PG_VERSION"
+
+# 确保服务在跑
+if ! sudo systemctl is-active --quiet postgresql 2>/dev/null; then
+    log "启动 PostgreSQL 服务..."
+    sudo pg_ctlcluster "$PG_VERSION" main start 2>/dev/null || sudo systemctl start postgresql
+    sleep 2
+fi
+
 # 创建用户和数据库(如果不存在)
 sudo -u postgres psql <<EOF >> "$LOG_FILE" 2>&1
 DO \$\$
@@ -177,21 +195,25 @@ ALTER USER $DB_USER CREATEDB;
 EOF
 
 # 修改 pg_hba.conf 用 md5 认证
-PG_HBA="/etc/postgresql/16/main/pg_hba.conf"
-if ! grep -q "host    all             $DB_USER             127.0.0.1/32            md5" "$PG_HBA"; then
-    log "配置 pg_hba.conf ..."
-    # 在文件中追加(简化处理,生产环境建议精确修改)
-    cat >> "$PG_HBA" <<EOF
+PG_HBA="/etc/postgresql/$PG_VERSION/main/pg_hba.conf"
+if [ ! -f "$PG_HBA" ]; then
+    log "⚠️  找不到 pg_hba.conf: $PG_HBA"
+    log "   跳过自动配置(密码认证可能用 peer 而非 md5)"
+else
+    if ! grep -q "host    $DB_NAME             $DB_USER             127.0.0.1/32            md5" "$PG_HBA"; then
+        log "配置 pg_hba.conf ..."
+        cat >> "$PG_HBA" <<EOF
 
 # fengjiji app user
 host    $DB_NAME             $DB_USER             127.0.0.1/32            md5
 host    $DB_NAME             $DB_USER             ::1/128                 md5
 EOF
-    systemctl reload postgresql
+        sudo systemctl reload postgresql
+    fi
 fi
 
 log "✅ 数据库配置完成"
-log "   数据库名: $DB_NAME"
+log "   数据库名: $DB_NAME (PG $PG_VERSION)"
 log "   用户名: $DB_USER"
 log "   密码: $DB_PASSWORD (请妥善保存)"
 
