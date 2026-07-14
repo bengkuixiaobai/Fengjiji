@@ -167,7 +167,8 @@ if ! command -v psql &>/dev/null; then
     exit 1
 fi
 
-PG_VERSION=$(psql --version | grep -oP 'PostgreSQL \K[0-9]+' | head -1)
+# 从 "psql (PostgreSQL) 12.22" 提取主版本号 12
+PG_VERSION=$(psql --version | grep -oE '[0-9]+' | head -1)
 log "✅ 检测到 PostgreSQL $PG_VERSION"
 
 # 确保服务在跑
