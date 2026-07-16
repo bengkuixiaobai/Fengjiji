@@ -45,6 +45,19 @@ function Login() {
     }
   }
 
+  // 验证失败:用 toast 提示一下下就消失
+  const handleFinishFailed = (errorInfo: { errorFields: { name: string[] }[] }) => {
+    const missing = errorInfo.errorFields.map((f) => f.name[0]).join(' 和 ')
+    const map: Record<string, string> = {
+      usernameOrEmail: '用户名或邮箱',
+      password: '密码',
+    }
+    const labels = errorInfo.errorFields
+      .map((f) => map[f.name[0]] || f.name[0])
+      .join(' 和 ')
+    message.error(`请输入${labels}`, 2)  // 2 秒后自动消失
+  }
+
   return (
     <div className={styles.container}>
       {/* 左侧品牌区 - 星空流星风格 */}
@@ -95,14 +108,17 @@ function Login() {
             form={form}
             name="login"
             onFinish={handleSubmit}
+            onFinishFailed={handleFinishFailed}
             autoComplete="off"
             size="large"
             className={styles.form}
+            validateTrigger={[]}
+            requiredMark={false}
           >
             <Form.Item
               name="usernameOrEmail"
               rules={[
-                { required: true, message: '请输入用户名或邮箱' },
+                { required: true, message: '' },
               ]}
             >
               <Input
@@ -115,8 +131,7 @@ function Login() {
             <Form.Item
               name="password"
               rules={[
-                { required: true, message: '请输入密码' },
-                { min: 6, message: '密码至少6个字符' },
+                { required: true, message: '' },
               ]}
             >
               <Input.Password

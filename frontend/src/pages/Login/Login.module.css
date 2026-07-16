@@ -200,16 +200,26 @@
   margin-bottom: 24px;
 }
 
-.form input,
-.form input::placeholder,
+/* 修复:输入框背景从 wrapper 透出,内部 input 透明 */
 .form .ant-input-affix-wrapper {
+  background: var(--input-bg);
+  border-color: var(--card-border);
   transition: all 0.2s ease;
-  background: var(--input-bg) !important;
-  color: var(--text-color) !important;
+}
+
+.form .ant-input-affix-wrapper > input.ant-input,
+.form input.ant-input {
+  background: transparent;
+  color: var(--text-color);
+}
+
+.form .ant-input-affix-wrapper input::placeholder {
+  color: var(--muted-text);
 }
 
 .form .ant-input-affix-wrapper:hover,
-.form .ant-input-affix-wrapper-focused {
+.form .ant-input-affix-wrapper-focused,
+.form .ant-input-affix-wrapper:focus-within {
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
 }
@@ -218,7 +228,8 @@
   color: var(--muted-text);
 }
 
-.form .ant-input-affix-wrapper-focused .inputIcon {
+.form .ant-input-affix-wrapper-focused .inputIcon,
+.form .ant-input-affix-wrapper:focus-within .inputIcon {
   color: #667eea;
 }
 
