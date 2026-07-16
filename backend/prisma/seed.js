@@ -11,6 +11,10 @@
 //   GUEST_PASSWORD   启动时若设置,则创建体验访客
 //
 // ⚠️  生产环境务必设置 ADMIN_PASSWORD(强密码,8 位以上,推荐 16 位)
+
+// P3-2: 自动加载 backend/.env(否则 Prisma 找不到 DATABASE_URL)
+require('dotenv').config()
+
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
