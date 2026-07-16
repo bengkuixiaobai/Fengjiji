@@ -6,8 +6,8 @@ module.exports = {
   apps: [
     {
       name: 'fengjiji-api',
-      script: 'backend/index.js',
-      cwd: './',
+      script: 'index.js',
+      cwd: './backend',  // 在 backend/ 里启动,dotenv 才能找到 .env
 
       // 环境变量
       env: {

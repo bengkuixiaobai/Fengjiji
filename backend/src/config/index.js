@@ -1,4 +1,5 @@
-require('dotenv').config()
+// P3-3: 显式加载 backend/.env,避免 PM2 在父目录启动时找不到
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') })
 
 const nodeEnv = process.env.NODE_ENV || 'development'
 const isProd = nodeEnv === 'production'
