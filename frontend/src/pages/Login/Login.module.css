@@ -171,7 +171,10 @@
 .formCard {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
   border-radius: 16px;
   padding: 48px 40px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
@@ -181,14 +184,14 @@
 .formTitle {
   font-size: 28px;
   font-weight: 600;
-  color: #262626;
+  color: var(--text-color);
   text-align: center;
   margin-bottom: 8px;
 }
 
 .formSubtitle {
   font-size: 14px;
-  color: #8c8c8c;
+  color: var(--secondary-text);
   text-align: center;
   margin-bottom: 32px;
 }
@@ -201,6 +204,8 @@
 .form input::placeholder,
 .form .ant-input-affix-wrapper {
   transition: all 0.2s ease;
+  background: var(--input-bg) !important;
+  color: var(--text-color) !important;
 }
 
 .form .ant-input-affix-wrapper:hover,
@@ -210,7 +215,7 @@
 }
 
 .inputIcon {
-  color: #bfbfbf;
+  color: var(--muted-text);
 }
 
 .form .ant-input-affix-wrapper-focused .inputIcon {
@@ -221,6 +226,7 @@
   transition: color 0.2s ease;
 }
 
+/* Checkbox + Label 区域(原来是 #8c8c8c 看不见) */
 .formOptions {
   display: flex;
   justify-content: space-between;
@@ -228,21 +234,42 @@
   margin-bottom: 24px;
 }
 
+.formOptions .ant-checkbox-inner {
+  border-color: var(--text-color) !important;
+  background-color: transparent !important;
+}
+
+.formOptions .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+.formOptions .ant-checkbox-wrapper {
+  color: var(--text-color) !important;
+}
+
+.formOptions span {
+  color: var(--text-color) !important;
+  opacity: 0.9;
+}
+
 .forgotLink {
   font-size: 14px;
-  color: #1890ff;
+  color: #667eea;
 }
 
 .forgotLink:hover {
-  color: #40a9ff;
+  color: #8b9aff;
 }
 
 .submitBtn {
   height: 48px;
   font-size: 16px;
+  font-weight: 500;
   border-radius: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
+  color: #ffffff !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -259,16 +286,16 @@
 .footer {
   text-align: center;
   font-size: 14px;
-  color: #8c8c8c;
+  color: var(--secondary-text);
 }
 
 .registerLink {
-  color: #1890ff;
+  color: #667eea !important;
   font-weight: 500;
 }
 
 .registerLink:hover {
-  color: #40a9ff;
+  color: #8b9aff !important;
 }
 
 /* 响应式适配 */
