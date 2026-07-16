@@ -46,14 +46,16 @@ function Login() {
   }
 
   // 验证失败:用 toast 提示一下下就消失
-  const handleFinishFailed = (errorInfo: { errorFields: { name: string[] }[] }) => {
-    const missing = errorInfo.errorFields.map((f) => f.name[0]).join(' 和 ')
+  const handleFinishFailed = (errorInfo: { errorFields: { name: (string | number)[] }[] }) => {
     const map: Record<string, string> = {
       usernameOrEmail: '用户名或邮箱',
       password: '密码',
     }
     const labels = errorInfo.errorFields
-      .map((f) => map[f.name[0]] || f.name[0])
+      .map((f) => {
+        const name = String(f.name[0])
+        return map[name] || name
+      })
       .join(' 和 ')
     message.error(`请输入${labels}`, 2)  // 2 秒后自动消失
   }
